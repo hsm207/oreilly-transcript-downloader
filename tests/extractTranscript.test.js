@@ -4,24 +4,29 @@ const {
   getTranscriptBodyElement,
 } = require("../src/extractTranscript");
 describe("getTranscriptBodyElement", () => {
+  let originalDocument;
+
+  beforeEach(() => {
+    originalDocument = global.document;
+  });
+
+  afterEach(() => {
+    global.document = originalDocument;
+  });
+
   it("returns the transcript body element from the DOM", () => {
     const dom = new JSDOM('<div data-testid="transcript-body"></div>');
-    // Patch global document for this test
-    const originalDocument = global.document;
     global.document = dom.window.document;
     const el = getTranscriptBodyElement();
     expect(el).not.toBeNull();
     expect(el.getAttribute("data-testid")).toBe("transcript-body");
-    global.document = originalDocument;
   });
 
   it("returns null if the element is not found", () => {
     const dom = new JSDOM("<div></div>");
-    const originalDocument = global.document;
     global.document = dom.window.document;
     const el = getTranscriptBodyElement();
     expect(el).toBeNull();
-    global.document = originalDocument;
   });
 });
 
