@@ -20,9 +20,11 @@ Thumbs.db
 .env
 .env.*
 
+
 # Build output (if any)
 dist/
 build/
+oreilly-transcript-downloader.zip
 
 # Misc
 *.local
