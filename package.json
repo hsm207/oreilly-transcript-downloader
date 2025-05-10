@@ -1,0 +1,23 @@
+{
+  "name": "oreilly-transcript-downloader",
+  "version": "1.0.0",
+  "description": "This browser extension allows users to download transcripts from videos on the O'Reilly online learning platform. Once a user enables the transcript feature while watching a video, they can easily download the transcript as a text file with the click of a button.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hsm207/oreilly-transcript-downloader.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hsm207/oreilly-transcript-downloader/issues"
+  },
+  "homepage": "https://github.com/hsm207/oreilly-transcript-downloader#readme",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

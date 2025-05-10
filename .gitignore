@@ -1,0 +1,39 @@
+# Node modules
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Jest coverage
+coverage/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# VSCode settings
+.vscode/
+
+# Env files
+.env
+.env.*
+
+# Build output (if any)
+dist/
+build/
+
+# Misc
+*.local
+
+# Chrome/Firefox extension artifacts
+*.crx
+*.xpi
+
+# Package lock files (optional, if you don't want to commit them)
+# package-lock.json
+yarn.lock
+
+# Test output
+*.test-results.json
