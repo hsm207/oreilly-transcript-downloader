@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "build": "node build.js",
-    "zip": "npm run build && cd dist && zip -r ../oreilly-transcript-downloader.zip ."
+    "zip": "npm run build && cd dist && zip -r ../oreilly-transcript-downloader.zip .",
+    "format": "npx prettier --write \"**/*.js\""
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   },
   "homepage": "https://github.com/hsm207/oreilly-transcript-downloader#readme",
   "devDependencies": {
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "jsdom": "^26.1.0"
   }
 }

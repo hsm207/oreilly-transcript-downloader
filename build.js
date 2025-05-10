@@ -1,19 +1,12 @@
 // build.js: Script to copy extension files to dist/ for packaging
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const filesToCopy = [
-  'manifest.json',
-  'README.md',
-  'LICENSE'
-];
+const filesToCopy = ["manifest.json", "README.md", "LICENSE"];
 
-const foldersToCopy = [
-  'src',
-  'icons'
-];
+const foldersToCopy = ["src", "icons"];
 
-const distDir = path.join(__dirname, 'dist');
+const distDir = path.join(__dirname, "dist");
 
 function copyFileSync(source, target) {
   let targetFile = target;
@@ -33,7 +26,7 @@ function copyFolderRecursiveSync(source, target) {
   }
   if (fs.lstatSync(source).isDirectory()) {
     files = fs.readdirSync(source);
-    files.forEach(function(file) {
+    files.forEach(function (file) {
       const curSource = path.join(source, file);
       if (fs.lstatSync(curSource).isDirectory()) {
         copyFolderRecursiveSync(curSource, targetFolder);
@@ -51,17 +44,17 @@ if (fs.existsSync(distDir)) {
 fs.mkdirSync(distDir);
 
 // Copy files
-filesToCopy.forEach(file => {
+filesToCopy.forEach((file) => {
   if (fs.existsSync(file)) {
     copyFileSync(file, distDir);
   }
 });
 
 // Copy folders
-foldersToCopy.forEach(folder => {
+foldersToCopy.forEach((folder) => {
   if (fs.existsSync(folder)) {
     copyFolderRecursiveSync(folder, distDir);
   }
 });
 
-console.log('Build complete. Files copied to dist/.');
+console.log("Build complete. Files copied to dist/.");

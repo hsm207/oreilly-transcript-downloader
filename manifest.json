@@ -16,7 +16,10 @@
       "matches": [
         "https://learning.oreilly.com/videos/*"
       ],
-      "js": ["src/content.js"]
+      "js": [
+        "src/extractTranscript.js",
+        "src/content.js"
+      ]
     }
   ],
   "action": {
