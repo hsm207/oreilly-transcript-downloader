@@ -24,6 +24,9 @@ describe("getTranscriptBodyElement", () => {
     global.document = originalDocument;
   });
 });
+
+const fs = require("fs");
+const path = require("path");
 const { JSDOM } = require("jsdom");
 
 describe("extractTranscriptFromDOM", () => {
@@ -76,5 +79,22 @@ describe("extractTranscriptFromDOM", () => {
     );
     const result = extractTranscriptFromDOM(transcriptBody);
     expect(result).toBe("00:05\nValid line");
+  });
+
+  it("extracts transcript from real sample.html and matches expected output", () => {
+    const html = fs.readFileSync(
+      path.join(__dirname, "fixtures", "sample.html"),
+      "utf-8",
+    );
+    const dom = new JSDOM(html);
+    const transcriptBody = dom.window.document.querySelector(
+      'div[data-testid="transcript-body"]',
+    );
+    const result = extractTranscriptFromDOM(transcriptBody);
+    const expected = fs.readFileSync(
+      path.join(__dirname, "fixtures", "expected-transcript.txt"),
+      "utf-8",
+    );
+    expect(result).toBe(expected.trim());
   });
 });
