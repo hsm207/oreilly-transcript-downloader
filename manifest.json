@@ -18,6 +18,7 @@
       ],
       "js": [
         "src/extractTranscript.js",
+        "src/extractTOC.js",
         "src/content.js"
       ]
     }
