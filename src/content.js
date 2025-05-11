@@ -19,18 +19,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     const pageTitle = document.title || "transcript";
     // Sanitize filename
     const filename = pageTitle.replace(/[^a-z0-9_.-]/gi, "_") + ".txt";
-    const blob = new Blob([fullTranscript], {
-      type: "text/plain;charset=utf-8;",
-    });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadTextFile(filename, fullTranscript);
     sendResponse({ status: "success" });
     return true;
   }
@@ -91,18 +80,23 @@ async function downloadAllTranscripts() {
     const currentPageTitle =
       document.title || title || `transcript-module-${i + 1}`;
     const filename = currentPageTitle.replace(/[^a-z0-9_.-]/gi, "_") + ".txt";
-
-    const blob = new Blob([transcript], { type: "text/plain" });
-    const a = document.createElement("a");
-    const blobUrl = URL.createObjectURL(blob);
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
+    downloadTextFile(filename, transcript);
     // Wait a bit before next module
     await new Promise((r) => setTimeout(r, 1000));
   }
   alert("All transcripts downloaded!");
+}
+
+// Helper to download a text file with a given filename
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
