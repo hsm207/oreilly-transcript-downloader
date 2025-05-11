@@ -36,7 +36,6 @@ function handleDownloadSingleTranscript(sendResponse) {
 // --- TOC extraction integration ---
 // These are attached to window for browser usage by extractTOC.js
 async function handleDownloadAllTranscripts(sendResponse) {
-  // Renamed and sendResponse added
   const extractTOCRoot = window.extractTOCRoot;
   const extractModuleLinksFromTOC = window.extractModuleLinksFromTOC;
   if (!extractTOCRoot || !extractModuleLinksFromTOC) {
@@ -61,66 +60,50 @@ async function handleDownloadAllTranscripts(sendResponse) {
   }
 
   try {
-    // Moved try/catch block here
     for (let i = 0; i < modules.length; i++) {
       const { title, url } = modules[i];
-      // Navigate to the module (simulate click)
+      console.log(`Processing module ${i + 1}/${modules.length}: ${title}`);
+
       const link = tocRoot.querySelector(`a.orm-Link-root[href='${url}']`);
-      if (link) link.click();
-      // Wait for transcript to load
-      await new Promise((resolve) => {
-        let attempts = 0;
-        function check() {
-          const transcriptBody = window.getTranscriptBodyElement?.();
-          if (transcriptBody) return resolve();
-          if (++attempts > 40) {
-            console.warn(
-              "Max attempts reached waiting for transcript to load for module:",
-              title,
-            );
-            return resolve(); // Resolve anyway to not block the whole process
-          }
-          setTimeout(check, 500);
-        }
-        check();
-      });
-      const transcriptBody = window.getTranscriptBodyElement?.();
-      if (!transcriptBody) {
+      if (!link) {
         console.warn(
-          "Transcript body not found for module:",
-          title,
-          "- skipping this module.",
+          `Link not found for module: ${title} (${url}) - skipping this module.`,
         );
-        // Optionally, send a partial error or notification if desired
-        // For now, we just log and continue
-        await new Promise((r) => setTimeout(r, 1000)); // Wait before next module
-        continue;
-      }
-      const transcript = window.extractTranscriptFromDOM(transcriptBody);
-      if (transcript.length === 0) {
-        console.warn(
-          "Empty transcript extracted for module:",
-          title,
-          "- skipping this module.",
-        );
-        await new Promise((r) => setTimeout(r, 1000)); // Wait before next module
         continue;
       }
 
-      // Use the current page title for the filename rather than the module title from TOC
-      // This ensures we're naming the file based on the module we're currently viewing
+      link.click();
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
+      const transcriptBody = window.getTranscriptBodyElement?.();
+      if (!transcriptBody) {
+        console.warn(
+          `Transcript body not found for module: ${title} (${url}) - skipping this module.`,
+        );
+        continue;
+      }
+
+      const transcript = window.extractTranscriptFromDOM(transcriptBody);
+      if (transcript.length === 0) {
+        console.warn(
+          `Empty transcript extracted for module: ${title} (${url}) - skipping this module.`,
+        );
+        continue;
+      }
+
       const currentPageTitle =
         document.title || title || `transcript-module-${i + 1}`;
       const filename = currentPageTitle.replace(/[^a-z0-9_.-]/gi, "_") + ".txt";
       downloadTextFile(filename, transcript);
-      // Wait a bit before next module
-      await new Promise((r) => setTimeout(r, 1000));
+
+      await new Promise((r) => setTimeout(r, 2000));
     }
     alert("All transcripts downloaded!");
-    sendResponse({ status: "completed" }); // Moved sendResponse here
+    sendResponse({ status: "completed" });
   } catch (error) {
     alert("Error downloading all transcripts: " + error.message);
-    sendResponse({ status: "error", message: error.message }); // Moved sendResponse here
+    sendResponse({ status: "error", message: error.message });
   }
 }
 
