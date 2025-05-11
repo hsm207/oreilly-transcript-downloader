@@ -1,49 +1,20 @@
-document.addEventListener("DOMContentLoaded", function () {
-  const downloadButton = document.createElement("button");
-  downloadButton.textContent = "Download Transcript";
-  document.body.appendChild(downloadButton);
-
-  downloadButton.addEventListener("click", function () {
-    chrome.runtime.sendMessage({ action: "downloadTranscript" });
-  });
-});
-
-function enableTranscript() {
-  const transcriptButton = document.querySelector(
-    ".transcript-button-selector",
-  ); // Update with actual selector
-  if (transcriptButton) {
-    transcriptButton.click();
-  }
-}
-
-function fetchTranscript() {
-  const transcriptElement = document.querySelector(
-    ".transcript-element-selector",
-  ); // Update with actual selector
-  if (transcriptElement) {
-    return transcriptElement.innerText;
-  }
-  return "";
-}
-
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "downloadTranscript") {
-    const transcriptBody = getTranscriptBodyElement();
+    const transcriptBody = window.getTranscriptBodyElement?.();
     if (!transcriptBody) {
       alert(
         "Transcript body not found! Please make sure the transcript is enabled on this page.",
       );
       sendResponse({ status: "not_found" });
-      return;
+      return true;
     }
-    const fullTranscript = extractTranscriptFromDOM(transcriptBody);
+    const fullTranscript = window.extractTranscriptFromDOM(transcriptBody);
     if (fullTranscript.length === 0) {
       alert(
         "No transcript text could be extracted. Please check if the transcript is visible and try again.",
       );
       sendResponse({ status: "empty" });
-      return;
+      return true;
     }
     const pageTitle = document.title || "transcript";
     // Sanitize filename
@@ -61,5 +32,77 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     sendResponse({ status: "success" });
+    return true;
+  }
+  if (request.action === "downloadAllTranscripts") {
+    (async () => {
+      try {
+        await downloadAllTranscripts();
+        sendResponse({ status: "completed" });
+      } catch (error) {
+        alert("Error downloading all transcripts: " + error.message);
+        sendResponse({ status: "error", message: error.message });
+      }
+    })();
+    return true; // Indicates that the response will be sent asynchronously
   }
 });
+
+// --- TOC extraction integration ---
+// These are attached to window for browser usage by extractTOC.js
+async function downloadAllTranscripts() {
+  const extractTOCRoot = window.extractTOCRoot;
+  const extractModuleLinksFromTOC = window.extractModuleLinksFromTOC;
+  if (!extractTOCRoot || !extractModuleLinksFromTOC) {
+    alert("TOC extraction functions not available.");
+    return;
+  }
+  const tocRoot = extractTOCRoot(document);
+  if (!tocRoot) {
+    alert("Table of Contents not found! Please open the TOC and try again.");
+    return;
+  }
+  const modules = extractModuleLinksFromTOC(tocRoot);
+  if (!modules.length) {
+    alert("No modules found in the TOC.");
+    return;
+  }
+  for (let i = 0; i < modules.length; i++) {
+    const { title, url } = modules[i];
+    // Navigate to the module (simulate click)
+    const link = tocRoot.querySelector(`a.orm-Link-root[href='${url}']`);
+    if (link) link.click();
+    // Wait for transcript to load
+    await new Promise((resolve) => {
+      let attempts = 0;
+      function check() {
+        const transcriptBody = window.getTranscriptBodyElement?.();
+        if (transcriptBody) return resolve();
+        if (++attempts > 40) return resolve(); // ~20s max
+        setTimeout(check, 500);
+      }
+      check();
+    });
+    const transcriptBody = window.getTranscriptBodyElement?.();
+    const transcript = window.extractTranscriptFromDOM(transcriptBody);
+
+    // Use the current page title for the filename rather than the module title from TOC
+    // This ensures we're naming the file based on the module we're currently viewing
+    const currentPageTitle =
+      document.title || title || `transcript-module-${i + 1}`;
+    const filename = currentPageTitle.replace(/[^a-z0-9_.-]/gi, "_") + ".txt";
+
+    const blob = new Blob([transcript], { type: "text/plain" });
+    const a = document.createElement("a");
+    const blobUrl = URL.createObjectURL(blob);
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+    // Wait a bit before next module
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  alert("All transcripts downloaded!");
+}
