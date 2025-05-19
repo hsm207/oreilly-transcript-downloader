@@ -19,10 +19,13 @@ export interface IToggler {
    *                                   that this toggle reveals. The implementing class
    *                                   **must** use this to verify that the content
    *                                   container becomes present/visible after the toggle action.
-   * @returns {Promise<void>} A promise that resolves when the content is confirmed to be visible,
-   *                          or rejects if it fails to become visible.
+   * @returns {Promise<Element>} A promise that resolves with the content container element when it is confirmed visible,
+   *                            or rejects if it fails to become visible.
    * @throws {Error} If the content container does not become visible after the toggle action
    *                 within a reasonable timeframe.
    */
-  ensureContentVisible(toggleElement: HTMLElement, contentContainerSelector: string): Promise<void>;
+  ensureContentVisible(
+    toggleElement: HTMLElement,
+    contentContainerSelector: string,
+  ): Promise<Element>;
 }

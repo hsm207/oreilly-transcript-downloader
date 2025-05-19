@@ -9,9 +9,7 @@ export class TranscriptToggler implements IToggler {
   /**
    * Constructs a TranscriptToggler.
    */
-  constructor() {
-    // Constructor remains simple
-  }
+  constructor() {}
 
   /**
    * Ensures the transcript content associated with the provided toggleElement is made visible
@@ -20,15 +18,15 @@ export class TranscriptToggler implements IToggler {
    * @param toggleButton - The HTMLElement that acts as the transcript toggle button.
    * @param transcriptContainerSelector - The CSS selector for the transcript content container
    *                                      (e.g., '[data-testid="transcript-body"]').
-   * @returns {Promise<void>} A promise that resolves when the transcript container is visible,
-   *                          or rejects if it fails to appear.
+   * @returns {Promise<Element>} A promise that resolves with the transcript container element when visible,
+   *                            or rejects if it fails to appear.
    * @throws {Error} If the transcript container does not become visible after toggling,
    *                 or if the provided toggleElement is not an HTMLButtonElement.
    */
   async ensureContentVisible(
     toggleButton: HTMLElement,
     transcriptContainerSelector: string,
-  ): Promise<void> {
+  ): Promise<Element> {
     if (!(toggleButton instanceof HTMLButtonElement)) {
       throw new Error('[TranscriptToggler] Provided toggleElement is not an HTMLButtonElement.');
     }
@@ -70,5 +68,6 @@ export class TranscriptToggler implements IToggler {
     console.log(
       `[TranscriptToggler] Transcript container ('${transcriptContainerSelector}') is visible.`,
     );
+    return transcriptContainer;
   }
 }

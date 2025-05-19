@@ -47,18 +47,22 @@ describe('TocToggler', () => {
     const clickSpy = vi.spyOn(button, 'click');
 
     // Simulate TOC container appearing after click
+    const container = document.createElement('ol');
+    container.id = 'toc-container';
+    container.setAttribute('data-testid', 'tocItems');
     (waitForElement as ReturnType<typeof vi.fn>).mockImplementation(async (selector: string) => {
       if (selector === MOCK_TOC_CONTAINER_SELECTOR) {
-        document.body.innerHTML += tocContainerHtml('toc-container');
-        return document.getElementById('toc-container');
+        document.body.appendChild(container);
+        return container;
       }
       return null;
     });
 
-    await toggler.ensureContentVisible(button, MOCK_TOC_CONTAINER_SELECTOR);
+    const result = await toggler.ensureContentVisible(button, MOCK_TOC_CONTAINER_SELECTOR);
 
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(waitForElement).toHaveBeenCalledWith(MOCK_TOC_CONTAINER_SELECTOR, 5000);
+    expect(result).toBe(container);
   });
 
   it('should not click the button if TOC is already visible and TOC container is present', async () => {
@@ -67,14 +71,14 @@ describe('TocToggler', () => {
     const clickSpy = vi.spyOn(button, 'click');
 
     // Simulate TOC container already being present
-    (waitForElement as ReturnType<typeof vi.fn>).mockResolvedValue(
-      document.getElementById('toc-container'),
-    );
+    const container = document.getElementById('toc-container');
+    (waitForElement as ReturnType<typeof vi.fn>).mockResolvedValue(container);
 
-    await toggler.ensureContentVisible(button, MOCK_TOC_CONTAINER_SELECTOR);
+    const result = await toggler.ensureContentVisible(button, MOCK_TOC_CONTAINER_SELECTOR);
 
     expect(clickSpy).not.toHaveBeenCalled();
     expect(waitForElement).toHaveBeenCalledWith(MOCK_TOC_CONTAINER_SELECTOR, 5000);
+    expect(result).toBe(container);
   });
 
   it('should throw an error if TOC container does not appear after clicking hidden button', async () => {

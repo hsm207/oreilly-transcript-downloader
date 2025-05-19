@@ -95,16 +95,12 @@ export class AllTranscriptDownloadService {
         if (onError) onError(err);
         return { success: false, error: err };
       }
-      // Use IToggler interface
-      await this.transcriptEnsurer.ensureContentVisible(
+
+
+      const transcriptBodyElement = await this.transcriptEnsurer.ensureContentVisible(
         transcriptToggleButton,
         TRANSCRIPT_CONTAINER_SELECTOR,
       );
-      // It's good practice to wait a brief moment for UI updates after a toggle.
-      // This was previously ensureTranscriptVisible's responsibility, now handled here.
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      const transcriptBodyElement = await this.waitForElement(TRANSCRIPT_CONTAINER_SELECTOR, 10000);
       if (!transcriptBodyElement || !(transcriptBodyElement instanceof HTMLElement)) {
         const err =
           'Transcript body did not appear or is not a valid element. Please try again or check if the video has a transcript.';
@@ -152,7 +148,7 @@ export class AllTranscriptDownloadService {
     const TOC_CONTAINER_SELECTOR = 'ol[data-testid="tocItems"]';
 
     try {
-      // 1. Find the TOC toggle button
+      // Find the TOC toggle button
       const tocToggleButtonElement = await this.waitForElement(TOC_TOGGLE_BUTTON_SELECTOR, 5000);
       if (!tocToggleButtonElement || !(tocToggleButtonElement instanceof HTMLElement)) {
         onError(
@@ -161,11 +157,11 @@ export class AllTranscriptDownloadService {
         return;
       }
 
-      // 2. Ensure the TOC is visible using the TocToggler (IToggler implementation)
-      await this.tocEnsurer.ensureContentVisible(tocToggleButtonElement, TOC_CONTAINER_SELECTOR);
+      const tocRootEl = await this.tocEnsurer.ensureContentVisible(
+        tocToggleButtonElement,
+        TOC_CONTAINER_SELECTOR,
+      );
 
-      // 3. Get the TOC root element (it should now be visible)
-      const tocRootEl = await this.waitForElement(TOC_CONTAINER_SELECTOR, 1000); // Shorter timeout as it's expected
       if (!tocRootEl || !(tocRootEl instanceof HTMLElement)) {
         onError(
           `Table of Contents container ('${TOC_CONTAINER_SELECTOR}') not found even after attempting to toggle. Please open the TOC manually and try again.`,
@@ -173,7 +169,6 @@ export class AllTranscriptDownloadService {
         return;
       }
 
-      // 4. Proceed with existing logic
       const tocItems = this.tocExtractor.extractItems(tocRootEl);
       if (!tocItems.length) {
         onError('No modules found in the Table of Contents.');

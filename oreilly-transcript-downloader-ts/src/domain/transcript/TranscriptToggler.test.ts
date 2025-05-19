@@ -46,39 +46,40 @@ describe('TranscriptToggler', () => {
   it('should click the toggle button if aria-label is "Show Transcript" and container appears', async () => {
     const button = createButton('btn-show', 'Show Transcript');
     const clickSpy = vi.spyOn(button, 'click');
+    const container = createContainer('transcript-body');
     (waitForElement as ReturnType<typeof vi.fn>).mockImplementation(async (selector) => {
-      if (selector === MOCK_TRANSCRIPT_CONTAINER_SELECTOR)
-        return createContainer('transcript-body');
+      if (selector === MOCK_TRANSCRIPT_CONTAINER_SELECTOR) return container;
       return null;
     });
 
-    await toggler.ensureContentVisible(button, MOCK_TRANSCRIPT_CONTAINER_SELECTOR);
+    const result = await toggler.ensureContentVisible(button, MOCK_TRANSCRIPT_CONTAINER_SELECTOR);
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(waitForElement).toHaveBeenCalledWith(MOCK_TRANSCRIPT_CONTAINER_SELECTOR, 5000);
+    expect(result).toBe(container);
   });
 
   it('should click the toggle button if aria-label contains "open" and container appears', async () => {
     const button = createButton('btn-open', 'Please open the transcript');
     const clickSpy = vi.spyOn(button, 'click');
-    (waitForElement as ReturnType<typeof vi.fn>).mockResolvedValue(
-      createContainer('transcript-body'),
-    );
+    const container = createContainer('transcript-body');
+    (waitForElement as ReturnType<typeof vi.fn>).mockResolvedValue(container);
 
-    await toggler.ensureContentVisible(button, MOCK_TRANSCRIPT_CONTAINER_SELECTOR);
+    const result = await toggler.ensureContentVisible(button, MOCK_TRANSCRIPT_CONTAINER_SELECTOR);
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(waitForElement).toHaveBeenCalledWith(MOCK_TRANSCRIPT_CONTAINER_SELECTOR, 5000);
+    expect(result).toBe(container);
   });
 
   it('should not click the toggle button if aria-label is "Hide Transcript" and container is present', async () => {
     const button = createButton('btn-hide', 'Hide Transcript');
     const clickSpy = vi.spyOn(button, 'click');
-    (waitForElement as ReturnType<typeof vi.fn>).mockResolvedValue(
-      createContainer('transcript-body'),
-    );
+    const container = createContainer('transcript-body');
+    (waitForElement as ReturnType<typeof vi.fn>).mockResolvedValue(container);
 
-    await toggler.ensureContentVisible(button, MOCK_TRANSCRIPT_CONTAINER_SELECTOR);
+    const result = await toggler.ensureContentVisible(button, MOCK_TRANSCRIPT_CONTAINER_SELECTOR);
     expect(clickSpy).not.toHaveBeenCalled();
     expect(waitForElement).toHaveBeenCalledWith(MOCK_TRANSCRIPT_CONTAINER_SELECTOR, 5000);
+    expect(result).toBe(container);
   });
 
   it('should throw error if container does not appear after clicking button', async () => {
