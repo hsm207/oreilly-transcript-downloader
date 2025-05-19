@@ -22,6 +22,7 @@
   "homepage": "https://github.com/hsm207/oreilly-transcript-downloader#readme",
   "devDependencies": {
     "jest": "^29.7.0",
-    "jsdom": "^26.1.0"
+    "jsdom": "^26.1.0",
+    "vitest": "^3.1.3"
   }
 }
