@@ -1,0 +1,7 @@
+# Prettier ignore file
+# Add files and folders here to exclude them from formatting
+coverage/
+node_modules/
+dist/
+build/
+*.snap
