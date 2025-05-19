@@ -2,7 +2,6 @@ import { TranscriptDownloadStateRepository } from '../infrastructure/TranscriptD
 import { TocExtractor } from '../domain/extraction/TocExtractor';
 import { TableOfContentsItem } from '../domain/models/TableOfContentsItem';
 import { waitForElement } from '../infrastructure/DomUtils';
-import { TranscriptContentLoader } from '../domain/transcript/TranscriptContentLoader';
 import { IToggler } from '../domain/common/IToggler'; // Import IToggler
 
 /**
@@ -24,7 +23,6 @@ export class AllTranscriptDownloadService {
   private fileDownloader: { downloadFile: (filename: string, content: string) => void };
   private waitForElement: (selector: string, timeout?: number) => Promise<Element | null>;
   private transcriptEnsurer: IToggler; // Renamed and type changed
-  private transcriptContentLoader: TranscriptContentLoader;
   private navigate: (url: string) => Promise<void>;
   private tocEnsurer: IToggler;
 
@@ -34,7 +32,6 @@ export class AllTranscriptDownloadService {
     fileDownloader: { downloadFile: (filename: string, content: string) => void },
     waitForElement: (selector: string, timeout?: number) => Promise<Element | null>,
     transcriptEnsurer: IToggler, // Updated parameter name and type
-    transcriptContentLoader: TranscriptContentLoader,
     navigate: (url: string) => Promise<void>,
     tocEnsurer: IToggler,
   ) {
@@ -43,7 +40,6 @@ export class AllTranscriptDownloadService {
     this.fileDownloader = fileDownloader;
     this.waitForElement = waitForElement;
     this.transcriptEnsurer = transcriptEnsurer; // Updated assignment
-    this.transcriptContentLoader = transcriptContentLoader;
     this.navigate = navigate;
     this.tocEnsurer = tocEnsurer;
   }
@@ -108,25 +104,14 @@ export class AllTranscriptDownloadService {
       // This was previously ensureTranscriptVisible's responsibility, now handled here.
       await new Promise((resolve) => setTimeout(resolve, 200));
 
-      const transcriptBodyElement = await this.waitForElement(
-        TRANSCRIPT_CONTAINER_SELECTOR,
-        10000,
-      );
+      const transcriptBodyElement = await this.waitForElement(TRANSCRIPT_CONTAINER_SELECTOR, 10000);
       if (!transcriptBodyElement || !(transcriptBodyElement instanceof HTMLElement)) {
         const err =
           'Transcript body did not appear or is not a valid element. Please try again or check if the video has a transcript.';
         if (onError) onError(err);
         return { success: false, error: err };
       }
-      const contentLoaded = await this.transcriptContentLoader.waitForContentToLoad(
-        transcriptBodyElement,
-        { logPrefix },
-      );
-      if (!contentLoaded) {
-        const err = 'Transcript content did not load within the expected time. Please try again.';
-        if (onError) onError(err);
-        return { success: false, error: err };
-      }
+
       const transcript = this.extractTranscript(transcriptBodyElement);
       if (transcript && transcript.trim().length > 0) {
         this.fileDownloader.downloadFile(filename, transcript);
