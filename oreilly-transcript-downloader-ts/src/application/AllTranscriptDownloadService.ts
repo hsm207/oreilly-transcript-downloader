@@ -23,29 +23,29 @@ export class AllTranscriptDownloadService {
   private extractTranscript: (el: HTMLElement) => string;
   private fileDownloader: { downloadFile: (filename: string, content: string) => void };
   private waitForElement: (selector: string, timeout?: number) => Promise<Element | null>;
-  private transcriptToggler: { ensureTranscriptVisible: () => void };
+  private transcriptEnsurer: IToggler; // Renamed and type changed
   private transcriptContentLoader: TranscriptContentLoader;
   private navigate: (url: string) => Promise<void>;
-  private tocEnsurer: IToggler; // New dependency for ensuring TOC is visible
+  private tocEnsurer: IToggler;
 
   constructor(
     tocExtractor: TocExtractor,
     extractTranscript: (el: HTMLElement) => string,
     fileDownloader: { downloadFile: (filename: string, content: string) => void },
     waitForElement: (selector: string, timeout?: number) => Promise<Element | null>,
-    transcriptToggler: { ensureTranscriptVisible: () => void }, // This is for the transcript itself
+    transcriptEnsurer: IToggler, // Updated parameter name and type
     transcriptContentLoader: TranscriptContentLoader,
     navigate: (url: string) => Promise<void>,
-    tocEnsurer: IToggler, // Add new dependency here
+    tocEnsurer: IToggler,
   ) {
     this.tocExtractor = tocExtractor;
     this.extractTranscript = extractTranscript;
     this.fileDownloader = fileDownloader;
     this.waitForElement = waitForElement;
-    this.transcriptToggler = transcriptToggler;
+    this.transcriptEnsurer = transcriptEnsurer; // Updated assignment
     this.transcriptContentLoader = transcriptContentLoader;
     this.navigate = navigate;
-    this.tocEnsurer = tocEnsurer; // Initialize the new dependency
+    this.tocEnsurer = tocEnsurer;
   }
 
   /**
@@ -87,9 +87,11 @@ export class AllTranscriptDownloadService {
     logPrefix: string;
     onError?: (error: unknown) => void;
   }): Promise<{ success: boolean; error?: string }> {
+    const TRANSCRIPT_TOGGLE_BUTTON_SELECTOR = '[data-testid="transcript-toggle"]';
+    const TRANSCRIPT_CONTAINER_SELECTOR = '[data-testid="transcript-body"]';
     try {
       const transcriptToggleButton = await this.waitForElement(
-        '[data-testid="transcript-toggle"]',
+        TRANSCRIPT_TOGGLE_BUTTON_SELECTOR,
         10000,
       );
       if (!transcriptToggleButton || !(transcriptToggleButton instanceof HTMLElement)) {
@@ -97,10 +99,17 @@ export class AllTranscriptDownloadService {
         if (onError) onError(err);
         return { success: false, error: err };
       }
-      this.transcriptToggler.ensureTranscriptVisible();
+      // Use IToggler interface
+      await this.transcriptEnsurer.ensureContentVisible(
+        transcriptToggleButton,
+        TRANSCRIPT_CONTAINER_SELECTOR,
+      );
+      // It's good practice to wait a brief moment for UI updates after a toggle.
+      // This was previously ensureTranscriptVisible's responsibility, now handled here.
       await new Promise((resolve) => setTimeout(resolve, 200));
+
       const transcriptBodyElement = await this.waitForElement(
-        '[data-testid="transcript-body"]',
+        TRANSCRIPT_CONTAINER_SELECTOR,
         10000,
       );
       if (!transcriptBodyElement || !(transcriptBodyElement instanceof HTMLElement)) {
