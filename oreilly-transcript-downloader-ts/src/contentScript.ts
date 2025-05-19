@@ -4,24 +4,34 @@ import { DefaultTocExtractor } from './domain/extraction/TocExtractor';
 import { waitForElement } from './infrastructure/DomUtils';
 import { extractTranscript } from './domain/extraction/TranscriptExtractor';
 import { downloadFile } from './domain/download/FileDownloader';
-import { TranscriptToggler } from './domain/transcript/TranscriptToggler';
-import { TranscriptContentLoader } from './domain/transcript/TranscriptContentLoader';
+import { TranscriptToggler } from './domain/transcript/TranscriptToggler'; // For the transcript panel
+import { TranscriptContentLoader } from './domain/transcript/TranscriptContentLoader'; // As per user attachment
+import { TocToggler } from './domain/toc/TocToggler'; // For the TOC panel, implements IToggler
 
 import { AllTranscriptDownloadService } from './application/AllTranscriptDownloadService';
 
 // On every page load, check if transcript download state exists and resume download using the application service
 const transcriptDownloadStateRepo = new TranscriptDownloadStateRepository();
+
+// Instantiate services for the TRANSCRIPT PANEL
+// Assuming TranscriptToggler for the transcript panel has a simple constructor and a ensureTranscriptVisible method
+const transcriptPanelToggler = new TranscriptToggler();
+const transcriptContentLoaderInstance = new TranscriptContentLoader(); // No constructor args as per user file
+
+// Instantiate services for the TABLE OF CONTENTS (TOC)
+const tocEnsurerInstance = new TocToggler(); // This is the IToggler for the TOC
+
 const allTranscriptDownloadService = new AllTranscriptDownloadService(
   new DefaultTocExtractor(),
   extractTranscript,
   { downloadFile },
   waitForElement,
-  new TranscriptToggler(),
-  new TranscriptContentLoader(),
+  transcriptPanelToggler, // For the transcript panel { ensureTranscriptVisible: () => void }
+  transcriptContentLoaderInstance, // For loading content in transcript panel
   async (url: string) => {
     window.location.href = url;
-    return Promise.resolve();
   },
+  tocEnsurerInstance, // IToggler for the TOC panel
 );
 
 allTranscriptDownloadService.resumeDownloadAllTranscriptsIfNeeded(

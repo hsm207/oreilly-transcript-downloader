@@ -49,7 +49,7 @@ describe('AllTranscriptDownloadService', () => {
       mockWaitForElement,
       mockTranscriptToggler,
       mockTranscriptContentLoader,
-      mockNavigate
+      mockNavigate,
     );
   });
 
@@ -66,7 +66,7 @@ describe('AllTranscriptDownloadService', () => {
       expect(mockExtractTranscript).toHaveBeenCalled();
       expect(mockFileDownloader.downloadFile).toHaveBeenCalledWith(
         'Test_Video_Title.txt',
-        'Mock transcript content'
+        'Mock transcript content',
       );
       expect(mockOnError).not.toHaveBeenCalled();
     });
@@ -76,7 +76,7 @@ describe('AllTranscriptDownloadService', () => {
     let mockStateRepo: any;
     let mockOnComplete: () => void;
     let mockOnErrorResume: (error: unknown, title: string) => void;
-    let extractAndDownloadTranscriptSpy: any; 
+    let extractAndDownloadTranscriptSpy: any;
 
     beforeEach(() => {
       mockStateRepo = {
@@ -105,15 +105,21 @@ describe('AllTranscriptDownloadService', () => {
       ];
       const currentState = { tocItems, currentIndex: 0 };
       mockStateRepo.load.mockReturnValue(currentState);
-      extractAndDownloadTranscriptSpy.mockImplementation(async (options: { filename: string; logPrefix: string }) => {
-        mockFileDownloader.downloadFile(options.filename, 'Mock transcript content');
-        return { success: true };
-      });
+      extractAndDownloadTranscriptSpy.mockImplementation(
+        async (options: { filename: string; logPrefix: string }) => {
+          mockFileDownloader.downloadFile(options.filename, 'Mock transcript content');
+          return { success: true };
+        },
+      );
 
       vi.useFakeTimers();
 
       // Start the operation but don't await it immediately
-      const resumePromise = service.resumeDownloadAllTranscriptsIfNeeded(mockStateRepo, mockOnComplete, mockOnErrorResume);
+      const resumePromise = service.resumeDownloadAllTranscriptsIfNeeded(
+        mockStateRepo,
+        mockOnComplete,
+        mockOnErrorResume,
+      );
 
       // Advance timers for the internal 1000ms delay in processCurrentTranscript (downloadDelayMs)
       await vi.advanceTimersByTimeAsync(1000);
@@ -128,7 +134,7 @@ describe('AllTranscriptDownloadService', () => {
       });
       expect(mockFileDownloader.downloadFile).toHaveBeenCalledWith(
         `${tocItems[0].title}.txt`,
-        'Mock transcript content'
+        'Mock transcript content',
       );
       expect(mockStateRepo.save).toHaveBeenCalledWith({ tocItems, currentIndex: 1 });
 
@@ -146,22 +152,28 @@ describe('AllTranscriptDownloadService', () => {
       const tocItems = [{ title: 'Video 1', href: 'http://example.com/video1' }];
       const currentState = { tocItems, currentIndex: 0 }; // Current index is the last item
       mockStateRepo.load.mockReturnValue(currentState);
-      extractAndDownloadTranscriptSpy.mockImplementation(async (options: { filename: string; logPrefix: string }) => {
-        mockFileDownloader.downloadFile(options.filename, 'Mock transcript content');
-        return { success: true };
-      });
+      extractAndDownloadTranscriptSpy.mockImplementation(
+        async (options: { filename: string; logPrefix: string }) => {
+          mockFileDownloader.downloadFile(options.filename, 'Mock transcript content');
+          return { success: true };
+        },
+      );
 
       vi.useFakeTimers();
 
       // Start the operation
-      const resumePromise = service.resumeDownloadAllTranscriptsIfNeeded(mockStateRepo, mockOnComplete, mockOnErrorResume);
+      const resumePromise = service.resumeDownloadAllTranscriptsIfNeeded(
+        mockStateRepo,
+        mockOnComplete,
+        mockOnErrorResume,
+      );
 
       // Advance timers for the internal 1000ms delay in processCurrentTranscript (downloadDelayMs)
       await vi.advanceTimersByTimeAsync(1000);
 
       // Await the main promise
       await resumePromise;
-      
+
       expect(mockStateRepo.load).toHaveBeenCalledTimes(1);
       expect(extractAndDownloadTranscriptSpy).toHaveBeenCalledWith({
         filename: `${tocItems[0].title}.txt`,
@@ -169,7 +181,7 @@ describe('AllTranscriptDownloadService', () => {
       });
       expect(mockFileDownloader.downloadFile).toHaveBeenCalledWith(
         `${tocItems[0].title}.txt`,
-        'Mock transcript content'
+        'Mock transcript content',
       );
       expect(mockStateRepo.save).not.toHaveBeenCalled();
       // stateRepo.clear() is called synchronously in this path
@@ -179,7 +191,7 @@ describe('AllTranscriptDownloadService', () => {
       await vi.advanceTimersByTimeAsync(500);
 
       expect(mockOnComplete).toHaveBeenCalledTimes(1);
-      expect(window.location.href).toBe(''); 
+      expect(window.location.href).toBe('');
       expect(mockOnErrorResume).not.toHaveBeenCalled();
 
       vi.useRealTimers();
@@ -188,7 +200,11 @@ describe('AllTranscriptDownloadService', () => {
     it('should do nothing if no state is found', async () => {
       mockStateRepo.load.mockReturnValue(null);
 
-      await service.resumeDownloadAllTranscriptsIfNeeded(mockStateRepo, mockOnComplete, mockOnErrorResume);
+      await service.resumeDownloadAllTranscriptsIfNeeded(
+        mockStateRepo,
+        mockOnComplete,
+        mockOnErrorResume,
+      );
 
       expect(mockStateRepo.load).toHaveBeenCalledTimes(1);
       // extractAndDownloadTranscriptSpy should not have been called if no state
@@ -208,20 +224,25 @@ describe('AllTranscriptDownloadService', () => {
       const currentState = { tocItems, currentIndex: 0 };
       mockStateRepo.load.mockReturnValue(currentState);
       // Simulate skipped, success: false means downloadFile is not called by extractAndDownloadTranscript
-      extractAndDownloadTranscriptSpy.mockResolvedValue({ success: false }); 
+      extractAndDownloadTranscriptSpy.mockResolvedValue({ success: false });
 
       vi.useFakeTimers();
 
-      await service.resumeDownloadAllTranscriptsIfNeeded(mockStateRepo, mockOnComplete, mockOnErrorResume);
+      await service.resumeDownloadAllTranscriptsIfNeeded(
+        mockStateRepo,
+        mockOnComplete,
+        mockOnErrorResume,
+      );
 
       expect(mockStateRepo.load).toHaveBeenCalledTimes(1);
       expect(extractAndDownloadTranscriptSpy).toHaveBeenCalledWith({
         filename: `${tocItems[0].title}.txt`,
         logPrefix: `[AllTranscriptDownloadService: ${tocItems[0].title}]`,
       });
-      expect(mockFileDownloader.downloadFile).not.toHaveBeenCalledWith( // Ensure download was not called for skipped
+      expect(mockFileDownloader.downloadFile).not.toHaveBeenCalledWith(
+        // Ensure download was not called for skipped
         `${tocItems[0].title}.txt`,
-        'Mock transcript content'
+        'Mock transcript content',
       );
       expect(mockStateRepo.save).toHaveBeenCalledWith({ tocItems, currentIndex: 1 }); // Still save and move to next
 
@@ -242,7 +263,6 @@ describe('AllTranscriptDownloadService', () => {
     //   const testError = new Error('Processing failed');
     //   // Simulate an error during transcript extraction/download
     //   extractAndDownloadTranscriptSpy.mockRejectedValue(testError);
-
 
     //   await service.resumeDownloadAllTranscriptsIfNeeded(mockStateRepo, mockOnComplete, mockOnErrorResume);
 
