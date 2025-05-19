@@ -10,9 +10,7 @@ export class TocToggler implements IToggler {
   /**
    * Constructs a TocToggler.
    */
-  constructor() {
-    // No longer accepts waitForElementFunc
-  }
+  constructor() {}
 
   /**
    * Ensures the Table of Contents (TOC) is visible by toggling the provided button
@@ -21,14 +19,14 @@ export class TocToggler implements IToggler {
    * @param toggleButton - The HTMLButtonElement that toggles the TOC.
    * @param tocContainerSelector - The CSS selector for the TOC content container
    *                               (e.g., 'ol[data-testid="tocItems"]').
-   * @returns {Promise<void>} A promise that resolves when the TOC container is visible,
-   *                          or rejects if it fails to appear.
+   * @returns {Promise<Element>} A promise that resolves with the TOC container element when visible,
+   *                            or rejects if it fails to appear.
    * @throws {Error} If the TOC container does not become visible after toggling.
    */
   async ensureContentVisible(
     toggleButton: HTMLElement,
     tocContainerSelector: string,
-  ): Promise<void> {
+  ): Promise<Element> {
     if (!(toggleButton instanceof HTMLButtonElement)) {
       throw new Error('Provided toggleElement is not a HTMLButtonElement for TocToggler.');
     }
@@ -52,5 +50,6 @@ export class TocToggler implements IToggler {
       throw new Error(errorMessage);
     }
     console.log(`[TocToggler] TOC container ('${tocContainerSelector}') is visible.`);
+    return tocContainer;
   }
 }

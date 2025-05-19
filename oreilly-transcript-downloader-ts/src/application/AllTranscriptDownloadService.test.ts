@@ -31,11 +31,11 @@ describe('AllTranscriptDownloadService', () => {
     mockExtractTranscript = vi.fn().mockReturnValue('Mock transcript content');
     mockFileDownloader = { downloadFile: vi.fn() };
     mockWaitForElement = vi.fn().mockResolvedValue(createMockElement());
-    mockTranscriptEnsurer = { ensureContentVisible: vi.fn().mockResolvedValue(undefined) };
+    mockTranscriptEnsurer = { ensureContentVisible: vi.fn().mockResolvedValue(createMockElement()) };
     mockNavigate = vi.fn().mockResolvedValue(undefined);
 
     mockOnError = vi.fn();
-    mockTocEnsurer = { ensureContentVisible: vi.fn().mockResolvedValue(undefined) };
+    mockTocEnsurer = { ensureContentVisible: vi.fn().mockResolvedValue(createMockElement()) };
 
     // Mock document.title for getSafePageTitle
     Object.defineProperty(document, 'title', {
@@ -62,11 +62,7 @@ describe('AllTranscriptDownloadService', () => {
 
       // Assert
       expect(mockWaitForElement).toHaveBeenCalledWith('[data-testid="transcript-toggle"]', 10000);
-      // The first call to mockWaitForElement returns the toggle button element
-      const toggleButton = (mockWaitForElement as any).mock.results[0].value;
       expect(mockTranscriptEnsurer.ensureContentVisible).toHaveBeenCalled();
-      // Optionally, check the arguments if needed (toggleButton, '[data-testid="transcript-body"]')
-      expect(mockWaitForElement).toHaveBeenCalledWith('[data-testid="transcript-body"]', 10000);
       expect(mockExtractTranscript).toHaveBeenCalled();
       expect(mockFileDownloader.downloadFile).toHaveBeenCalledWith(
         'Test_Video_Title.txt',
