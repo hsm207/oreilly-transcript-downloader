@@ -2,6 +2,8 @@ import { TranscriptDownloadStateRepository } from '../infrastructure/TranscriptD
 import { TocExtractor } from '../domain/extraction/TocExtractor';
 import { TableOfContentsItem } from '../domain/models/TableOfContentsItem';
 import { waitForElement } from '../infrastructure/DomUtils';
+import { TranscriptContentLoader } from '../domain/transcript/TranscriptContentLoader';
+import { IToggler } from '../domain/common/IToggler'; // Import IToggler
 
 /**
  * Service to orchestrate downloading all transcripts for modules/videos listed in the TOC.
@@ -22,21 +24,19 @@ export class AllTranscriptDownloadService {
   private fileDownloader: { downloadFile: (filename: string, content: string) => void };
   private waitForElement: (selector: string, timeout?: number) => Promise<Element | null>;
   private transcriptToggler: { ensureTranscriptVisible: () => void };
-  private transcriptContentLoader: {
-    waitForContentToLoad: (el: HTMLElement, opts?: any) => Promise<boolean>;
-  };
+  private transcriptContentLoader: TranscriptContentLoader;
   private navigate: (url: string) => Promise<void>;
+  private tocEnsurer: IToggler; // New dependency for ensuring TOC is visible
 
   constructor(
     tocExtractor: TocExtractor,
     extractTranscript: (el: HTMLElement) => string,
     fileDownloader: { downloadFile: (filename: string, content: string) => void },
     waitForElement: (selector: string, timeout?: number) => Promise<Element | null>,
-    transcriptToggler: { ensureTranscriptVisible: () => void },
-    transcriptContentLoader: {
-      waitForContentToLoad: (el: HTMLElement, opts?: any) => Promise<boolean>;
-    },
+    transcriptToggler: { ensureTranscriptVisible: () => void }, // This is for the transcript itself
+    transcriptContentLoader: TranscriptContentLoader,
     navigate: (url: string) => Promise<void>,
+    tocEnsurer: IToggler, // Add new dependency here
   ) {
     this.tocExtractor = tocExtractor;
     this.extractTranscript = extractTranscript;
@@ -45,6 +45,7 @@ export class AllTranscriptDownloadService {
     this.transcriptToggler = transcriptToggler;
     this.transcriptContentLoader = transcriptContentLoader;
     this.navigate = navigate;
+    this.tocEnsurer = tocEnsurer; // Initialize the new dependency
   }
 
   /**
@@ -153,13 +154,32 @@ export class AllTranscriptDownloadService {
     stateRepo: TranscriptDownloadStateRepository,
     onError: (error: unknown) => void,
   ): Promise<void> {
+    const TOC_TOGGLE_BUTTON_SELECTOR = '[data-testid="table-of-contents-button"]';
+    const TOC_CONTAINER_SELECTOR = 'ol[data-testid="tocItems"]';
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      const tocRootEl = await this.waitForElement('ol[data-testid="tocItems"]');
-      if (!tocRootEl || !(tocRootEl instanceof HTMLElement)) {
-        onError('Table of Contents not found. Please open the TOC and try again.');
+      // 1. Find the TOC toggle button
+      const tocToggleButtonElement = await this.waitForElement(TOC_TOGGLE_BUTTON_SELECTOR, 5000);
+      if (!tocToggleButtonElement || !(tocToggleButtonElement instanceof HTMLElement)) {
+        onError(
+          `Table of Contents toggle button ('${TOC_TOGGLE_BUTTON_SELECTOR}') not found. Please ensure the TOC panel can be opened.`,
+        );
         return;
       }
+
+      // 2. Ensure the TOC is visible using the TocToggler (IToggler implementation)
+      await this.tocEnsurer.ensureContentVisible(tocToggleButtonElement, TOC_CONTAINER_SELECTOR);
+
+      // 3. Get the TOC root element (it should now be visible)
+      const tocRootEl = await this.waitForElement(TOC_CONTAINER_SELECTOR, 1000); // Shorter timeout as it's expected
+      if (!tocRootEl || !(tocRootEl instanceof HTMLElement)) {
+        onError(
+          `Table of Contents container ('${TOC_CONTAINER_SELECTOR}') not found even after attempting to toggle. Please open the TOC manually and try again.`,
+        );
+        return;
+      }
+
+      // 4. Proceed with existing logic
       const tocItems = this.tocExtractor.extractItems(tocRootEl);
       if (!tocItems.length) {
         onError('No modules found in the Table of Contents.');
