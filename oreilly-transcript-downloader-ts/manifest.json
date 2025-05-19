@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "O'Reilly Transcript Downloader",
+  "version": "1.0.0",
+  "description": "Download transcripts from O'Reilly video pages.",
+  "icons": {
+    "16": "icon/16.png",
+    "32": "icon/32.png",
+    "48": "icon/48.png",
+    "96": "icon/96.png",
+    "128": "icon/128.png"
+  },
+  "action": {
+    "default_popup": "src/popup.html"
+  },
+  "background": {
+    "service_worker": "src/background.ts"
+  },
+  "permissions": ["tabs"],
+  "content_scripts": [
+    {
+      "matches": ["https://learning.oreilly.com/videos/*"],
+      "js": ["src/contentScript.ts"],
+      "run_at": "document_idle"
+    }
+  ]
+}
