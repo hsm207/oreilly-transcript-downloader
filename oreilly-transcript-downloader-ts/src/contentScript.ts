@@ -5,7 +5,6 @@ import { waitForElement } from './infrastructure/DomUtils';
 import { extractTranscript } from './domain/extraction/TranscriptExtractor';
 import { downloadFile } from './domain/download/FileDownloader';
 import { TranscriptToggler } from './domain/transcript/TranscriptToggler'; // Implements IToggler for ensuring transcript panel visibility
-import { TranscriptContentLoader } from './domain/transcript/TranscriptContentLoader'; // As per user attachment
 import { TocToggler } from './domain/toc/TocToggler'; // For the TOC panel, implements IToggler
 
 import { AllTranscriptDownloadService } from './application/AllTranscriptDownloadService';
@@ -16,7 +15,6 @@ const transcriptDownloadStateRepo = new TranscriptDownloadStateRepository();
 // Instantiate services for the TRANSCRIPT PANEL
 // TranscriptToggler implements IToggler and is used to ensure the transcript panel is visible.
 const transcriptEnsurerInstance = new TranscriptToggler(); // IToggler for the transcript panel
-const transcriptContentLoaderInstance = new TranscriptContentLoader(); // No constructor args as per user file
 
 // Instantiate services for the TABLE OF CONTENTS (TOC)
 const tocEnsurerInstance = new TocToggler(); // This is the IToggler for the TOC
@@ -27,7 +25,6 @@ const allTranscriptDownloadService = new AllTranscriptDownloadService(
   { downloadFile },
   waitForElement,
   transcriptEnsurerInstance, // IToggler for ensuring transcript panel visibility
-  transcriptContentLoaderInstance, // For loading content in transcript panel
   async (url: string) => {
     window.location.href = url;
   },

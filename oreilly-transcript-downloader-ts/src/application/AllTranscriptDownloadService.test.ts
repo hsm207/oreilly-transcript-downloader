@@ -8,13 +8,15 @@ describe('AllTranscriptDownloadService', () => {
   let mockExtractTranscript: (el: HTMLElement) => string;
   let mockFileDownloader: { downloadFile: (filename: string, content: string) => void };
   let mockWaitForElement: (selector: string, timeout?: number) => Promise<Element | null>;
-  let mockTranscriptEnsurer: { ensureContentVisible: (el: HTMLElement, selector: string) => Promise<void> };
-  let mockTranscriptContentLoader: {
-    waitForContentToLoad: (el: HTMLElement, opts?: any) => Promise<boolean>;
+  let mockTranscriptEnsurer: {
+    ensureContentVisible: (el: HTMLElement, selector: string) => Promise<void>;
   };
+
   let mockNavigate: (url: string) => Promise<void>;
   let service: AllTranscriptDownloadService;
-  let mockTocEnsurer: { ensureContentVisible: (el: HTMLElement, selector: string) => Promise<void> };
+  let mockTocEnsurer: {
+    ensureContentVisible: (el: HTMLElement, selector: string) => Promise<void>;
+  };
   let mockOnError: (error: unknown) => void;
 
   // Mock HTML Element
@@ -30,9 +32,6 @@ describe('AllTranscriptDownloadService', () => {
     mockFileDownloader = { downloadFile: vi.fn() };
     mockWaitForElement = vi.fn().mockResolvedValue(createMockElement());
     mockTranscriptEnsurer = { ensureContentVisible: vi.fn().mockResolvedValue(undefined) };
-    mockTranscriptContentLoader = {
-      waitForContentToLoad: vi.fn().mockResolvedValue(true),
-    };
     mockNavigate = vi.fn().mockResolvedValue(undefined);
 
     mockOnError = vi.fn();
@@ -51,7 +50,6 @@ describe('AllTranscriptDownloadService', () => {
       mockFileDownloader,
       mockWaitForElement,
       mockTranscriptEnsurer,
-      mockTranscriptContentLoader,
       mockNavigate,
       mockTocEnsurer,
     );
@@ -69,7 +67,6 @@ describe('AllTranscriptDownloadService', () => {
       expect(mockTranscriptEnsurer.ensureContentVisible).toHaveBeenCalled();
       // Optionally, check the arguments if needed (toggleButton, '[data-testid="transcript-body"]')
       expect(mockWaitForElement).toHaveBeenCalledWith('[data-testid="transcript-body"]', 10000);
-      expect(mockTranscriptContentLoader.waitForContentToLoad).toHaveBeenCalled();
       expect(mockExtractTranscript).toHaveBeenCalled();
       expect(mockFileDownloader.downloadFile).toHaveBeenCalledWith(
         'Test_Video_Title.txt',

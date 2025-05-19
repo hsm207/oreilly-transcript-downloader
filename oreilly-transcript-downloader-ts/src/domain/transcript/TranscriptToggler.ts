@@ -30,9 +30,7 @@ export class TranscriptToggler implements IToggler {
     transcriptContainerSelector: string,
   ): Promise<void> {
     if (!(toggleButton instanceof HTMLButtonElement)) {
-      throw new Error(
-        '[TranscriptToggler] Provided toggleElement is not an HTMLButtonElement.',
-      );
+      throw new Error('[TranscriptToggler] Provided toggleElement is not an HTMLButtonElement.');
     }
 
     // Log to help with debugging
@@ -52,19 +50,25 @@ export class TranscriptToggler implements IToggler {
       toggleButton.click();
       clicked = true;
       // Add a small delay for UI transition before checking for the container
-      await new Promise(resolve => setTimeout(resolve, 200)); // UI transition delay
+      await new Promise((resolve) => setTimeout(resolve, 200)); // UI transition delay
     } else {
-      console.log('[TranscriptToggler] Transcript toggle button indicates content may already be visible.');
+      console.log(
+        '[TranscriptToggler] Transcript toggle button indicates content may already be visible.',
+      );
     }
 
     // Now, wait for the transcript container to be present
     const transcriptContainer = await waitForElement(transcriptContainerSelector, 5000); // 5s timeout
     if (!transcriptContainer) {
-      const actionTaken = clicked ? "after clicking toggle" : "even though toggle indicated visible";
+      const actionTaken = clicked
+        ? 'after clicking toggle'
+        : 'even though toggle indicated visible';
       const errorMessage = `[TranscriptToggler] Transcript container ('${transcriptContainerSelector}') did not appear ${actionTaken}.`;
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
-    console.log(`[TranscriptToggler] Transcript container ('${transcriptContainerSelector}') is visible.`);
+    console.log(
+      `[TranscriptToggler] Transcript container ('${transcriptContainerSelector}') is visible.`,
+    );
   }
 }
