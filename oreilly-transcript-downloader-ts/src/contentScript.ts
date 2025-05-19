@@ -4,31 +4,25 @@ import { DefaultTocExtractor } from './domain/extraction/TocExtractor';
 import { waitForElement } from './infrastructure/DomUtils';
 import { extractTranscript } from './domain/extraction/TranscriptExtractor';
 import { downloadFile } from './domain/download/FileDownloader';
-import { TranscriptToggler } from './domain/transcript/TranscriptToggler'; // Implements IToggler for ensuring transcript panel visibility
-import { TocToggler } from './domain/toc/TocToggler'; // For the TOC panel, implements IToggler
-
+import { TranscriptToggler } from './domain/transcript/TranscriptToggler';
+import { TocToggler } from './domain/toc/TocToggler';
 import { AllTranscriptDownloadService } from './application/AllTranscriptDownloadService';
 
 // On every page load, check if transcript download state exists and resume download using the application service
 const transcriptDownloadStateRepo = new TranscriptDownloadStateRepository();
-
-// Instantiate services for the TRANSCRIPT PANEL
-// TranscriptToggler implements IToggler and is used to ensure the transcript panel is visible.
-const transcriptEnsurerInstance = new TranscriptToggler(); // IToggler for the transcript panel
-
-// Instantiate services for the TABLE OF CONTENTS (TOC)
-const tocEnsurerInstance = new TocToggler(); // This is the IToggler for the TOC
+const transcriptEnsurerInstance = new TranscriptToggler();
+const tocEnsurerInstance = new TocToggler();
 
 const allTranscriptDownloadService = new AllTranscriptDownloadService(
   new DefaultTocExtractor(),
   extractTranscript,
   { downloadFile },
   waitForElement,
-  transcriptEnsurerInstance, // IToggler for ensuring transcript panel visibility
+  transcriptEnsurerInstance,
   async (url: string) => {
     window.location.href = url;
   },
-  tocEnsurerInstance, // IToggler for the TOC panel
+  tocEnsurerInstance,
 );
 
 allTranscriptDownloadService.resumeDownloadAllTranscriptsIfNeeded(
