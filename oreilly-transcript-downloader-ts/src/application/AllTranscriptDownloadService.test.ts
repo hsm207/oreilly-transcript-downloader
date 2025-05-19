@@ -8,12 +8,13 @@ describe('AllTranscriptDownloadService', () => {
   let mockExtractTranscript: (el: HTMLElement) => string;
   let mockFileDownloader: { downloadFile: (filename: string, content: string) => void };
   let mockWaitForElement: (selector: string, timeout?: number) => Promise<Element | null>;
-  let mockTranscriptToggler: { ensureTranscriptVisible: () => void };
+  let mockTranscriptEnsurer: { ensureContentVisible: (el: HTMLElement, selector: string) => Promise<void> };
   let mockTranscriptContentLoader: {
     waitForContentToLoad: (el: HTMLElement, opts?: any) => Promise<boolean>;
   };
   let mockNavigate: (url: string) => Promise<void>;
   let service: AllTranscriptDownloadService;
+  let mockTocEnsurer: { ensureContentVisible: (el: HTMLElement, selector: string) => Promise<void> };
   let mockOnError: (error: unknown) => void;
 
   // Mock HTML Element
@@ -28,12 +29,14 @@ describe('AllTranscriptDownloadService', () => {
     mockExtractTranscript = vi.fn().mockReturnValue('Mock transcript content');
     mockFileDownloader = { downloadFile: vi.fn() };
     mockWaitForElement = vi.fn().mockResolvedValue(createMockElement());
-    mockTranscriptToggler = { ensureTranscriptVisible: vi.fn() };
+    mockTranscriptEnsurer = { ensureContentVisible: vi.fn().mockResolvedValue(undefined) };
     mockTranscriptContentLoader = {
       waitForContentToLoad: vi.fn().mockResolvedValue(true),
     };
     mockNavigate = vi.fn().mockResolvedValue(undefined);
+
     mockOnError = vi.fn();
+    mockTocEnsurer = { ensureContentVisible: vi.fn().mockResolvedValue(undefined) };
 
     // Mock document.title for getSafePageTitle
     Object.defineProperty(document, 'title', {
@@ -47,9 +50,10 @@ describe('AllTranscriptDownloadService', () => {
       mockExtractTranscript,
       mockFileDownloader,
       mockWaitForElement,
-      mockTranscriptToggler,
+      mockTranscriptEnsurer,
       mockTranscriptContentLoader,
       mockNavigate,
+      mockTocEnsurer,
     );
   });
 
@@ -60,7 +64,10 @@ describe('AllTranscriptDownloadService', () => {
 
       // Assert
       expect(mockWaitForElement).toHaveBeenCalledWith('[data-testid="transcript-toggle"]', 10000);
-      expect(mockTranscriptToggler.ensureTranscriptVisible).toHaveBeenCalled();
+      // The first call to mockWaitForElement returns the toggle button element
+      const toggleButton = (mockWaitForElement as any).mock.results[0].value;
+      expect(mockTranscriptEnsurer.ensureContentVisible).toHaveBeenCalled();
+      // Optionally, check the arguments if needed (toggleButton, '[data-testid="transcript-body"]')
       expect(mockWaitForElement).toHaveBeenCalledWith('[data-testid="transcript-body"]', 10000);
       expect(mockTranscriptContentLoader.waitForContentToLoad).toHaveBeenCalled();
       expect(mockExtractTranscript).toHaveBeenCalled();
