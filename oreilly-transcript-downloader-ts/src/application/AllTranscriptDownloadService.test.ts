@@ -31,7 +31,9 @@ describe('AllTranscriptDownloadService', () => {
     mockExtractTranscript = vi.fn().mockReturnValue('Mock transcript content');
     mockFileDownloader = { downloadFile: vi.fn() };
     mockWaitForElement = vi.fn().mockResolvedValue(createMockElement());
-    mockTranscriptEnsurer = { ensureContentVisible: vi.fn().mockResolvedValue(createMockElement()) };
+    mockTranscriptEnsurer = {
+      ensureContentVisible: vi.fn().mockResolvedValue(createMockElement()),
+    };
     mockNavigate = vi.fn().mockResolvedValue(undefined);
 
     mockOnError = vi.fn();

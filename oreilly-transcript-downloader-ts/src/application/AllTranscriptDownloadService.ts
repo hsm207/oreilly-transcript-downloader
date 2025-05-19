@@ -96,7 +96,6 @@ export class AllTranscriptDownloadService {
         return { success: false, error: err };
       }
 
-
       const transcriptBodyElement = await this.transcriptEnsurer.ensureContentVisible(
         transcriptToggleButton,
         TRANSCRIPT_CONTAINER_SELECTOR,
