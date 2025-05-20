@@ -1,0 +1,19 @@
+[
+  {
+    "type": "paragraph",
+    "text": "FIGURE 20-1"
+  },
+  {
+    "type": "paragraph",
+    "text": "The Cost of Loss"
+  },
+  {
+    "type": "image",
+    "alt": "526",
+    "src": "/api/v2/epubs/urn:orm:book:9780061745171/files/images/526.jpg"
+  },
+  {
+    "type": "caption",
+    "text": "Imagine that you find a stock that you think can grow at 10% a year even if the market only grows 5% annually. Unfortunately, you are so enthusiastic that you pay too high a price, and the stock loses 50% of its value the first year. Even if the stock then generates double the market’s return, it will take you more than 16 years to overtake the market—simply because you paid too much, and lost too much, at the outset."
+  }
+]
