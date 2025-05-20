@@ -17,48 +17,113 @@ export class PdfGenerator {
   ): Promise<void> {
     try {
       await PersistentLogger.info(`Generating PDF for ${filename}`);
-      const doc = new jsPDF();
-      let y = 20;
+      // Set up jsPDF for A4 size, mm units
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const leftMargin = 20;
+      const rightMargin = 20;
+      const topMargin = 20;
+      const bottomMargin = 20;
+      const usableWidth = pageWidth - leftMargin - rightMargin;
+      let y = topMargin;
+
       for (const el of elements) {
         switch (el.type) {
-          case 'heading':
-            doc.setFontSize(16 + (6 - Math.min(el.level, 6)) * 2);
-            doc.text(el.text, 15, y);
-            y += 10;
-            break;
-          case 'paragraph':
-            doc.setFontSize(12);
-            doc.text(el.text, 15, y);
-            y += 8;
-            break;
-          case 'list':
-            doc.setFontSize(12);
-            for (const item of el.items) {
-              doc.text(`${el.ordered ? '•' : '-'} ${item}`, 20, y);
-              y += 7;
+          case 'heading': {
+            const fontSize = 16 + (6 - Math.min(el.level, 6)) * 2;
+            doc.setFontSize(fontSize);
+            const lines = doc.splitTextToSize(el.text, usableWidth);
+            for (const line of lines) {
+              if (y + fontSize > pageHeight - bottomMargin) {
+                doc.addPage();
+                y = topMargin;
+              }
+              doc.text(line, leftMargin, y);
+              y += fontSize + 2;
             }
             break;
-          case 'caption':
-            doc.setFontSize(10);
-            doc.text(el.text, 15, y);
-            y += 7;
+          }
+          case 'paragraph': {
+            const fontSize = 12;
+            doc.setFontSize(fontSize);
+            const lines = doc.splitTextToSize(el.text, usableWidth);
+            for (const line of lines) {
+              if (y + fontSize > pageHeight - bottomMargin) {
+                doc.addPage();
+                y = topMargin;
+              }
+              doc.text(line, leftMargin, y);
+              y += fontSize + 1;
+            }
             break;
-          case 'image':
-            // For testability, skip image rendering if running in node
+          }
+          case 'list': {
+            const fontSize = 12;
+            doc.setFontSize(fontSize);
+            for (const item of el.items) {
+              const bullet = el.ordered ? '•' : '-';
+              const lines = doc.splitTextToSize(`${bullet} ${item}`, usableWidth - 5);
+              for (const line of lines) {
+                if (y + fontSize > pageHeight - bottomMargin) {
+                  doc.addPage();
+                  y = topMargin;
+                }
+                doc.text(line, leftMargin + 5, y);
+                y += fontSize + 1;
+              }
+            }
+            break;
+          }
+          case 'caption': {
+            const fontSize = 10;
+            doc.setFontSize(fontSize);
+            const lines = doc.splitTextToSize(el.text, usableWidth);
+            for (const line of lines) {
+              if (y + fontSize > pageHeight - bottomMargin) {
+                doc.addPage();
+                y = topMargin;
+              }
+              doc.text(line, leftMargin, y);
+              y += fontSize + 1;
+            }
+            break;
+          }
+          case 'image': {
             if (typeof window !== 'undefined') {
               try {
                 const imgData = await PdfGenerator.loadImageAsDataUrl(el.src);
-                doc.addImage(imgData, 'JPEG', 15, y, 60, 40);
-                y += 42;
+                // Scale image to fit usableWidth, keep aspect ratio, max height 100mm
+                const img = new window.Image();
+                img.src = el.src;
+                await new Promise((res, rej) => {
+                  img.onload = res;
+                  img.onerror = rej;
+                });
+                let imgWidth = img.width;
+                let imgHeight = img.height;
+                // Convert px to mm (assuming 96dpi)
+                const pxToMm = (px: number) => (px * 25.4) / 96;
+                imgWidth = pxToMm(imgWidth);
+                imgHeight = pxToMm(imgHeight);
+                let drawWidth = Math.min(imgWidth, usableWidth);
+                let drawHeight = imgHeight * (drawWidth / imgWidth);
+                if (drawHeight > 100) {
+                  drawHeight = 100;
+                  drawWidth = imgWidth * (drawHeight / imgHeight);
+                }
+                if (y + drawHeight > pageHeight - bottomMargin) {
+                  doc.addPage();
+                  y = topMargin;
+                }
+                doc.addImage(imgData, 'JPEG', leftMargin, y, drawWidth, drawHeight);
+                y += drawHeight + 2;
               } catch (err) {
                 await PersistentLogger.warn(`Failed to load image: ${el.src}`);
               }
             }
             break;
-        }
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
+          }
         }
       }
       doc.save(filename);

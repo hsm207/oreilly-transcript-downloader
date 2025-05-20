@@ -19,6 +19,13 @@ describe('PdfGenerator', () => {
     vi.doMock('jspdf', () => {
       const saveMock = vi.fn();
       const addImageMock = vi.fn();
+      // Mock splitTextToSize to just split on newlines or return the string as an array
+      const splitTextToSize = (text: string, _width: number) => {
+        if (typeof text === 'string') {
+          return text.split('\n');
+        }
+        return [text];
+      };
       return {
         jsPDF: vi.fn().mockImplementation(() => ({
           setFontSize: vi.fn(),
@@ -26,6 +33,7 @@ describe('PdfGenerator', () => {
           addPage: vi.fn(),
           addImage: addImageMock,
           save: saveMock,
+          splitTextToSize,
         })),
       };
     });
