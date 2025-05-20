@@ -11,6 +11,8 @@ This project is a browser extension that allows users to download transcripts fr
 
 ## Core Development Principles
 
+- **Judicious Logging**: Use `PersistentLogger` for important debug, info, warning, and error messages that aid in diagnosing extension behavior across content, background, and domain layers. Avoid excessive or redundant logging; prefer logs that help trace user actions, extension state changes, or error conditions. Always use the appropriate log level (`log`, `info`, `warn`, `error`, `debug`).
+
 - **SOLID Principles**: Follow single responsibility, open-closed, Liskov substitution, interface segregation, and dependency inversion
 - **Clean Code Practices**: Write readable, maintainable, and self-documenting code
 - **Test-Driven Development (TDD)**: Write tests before implementing features
@@ -20,8 +22,8 @@ This project is a browser extension that allows users to download transcripts fr
 After making changes, run these commands to ensure quality:
 
 1. `npm run format` - Format the code
-2. `npm run test` - Run automated tests
-3. `npm run build` - Build the project
+2. `npx vitest run` - Run automated tests
+3. `npx vite build` - Build the project
 4. Always use `npx` when running Vite commands
 
 ## Coding Standards
