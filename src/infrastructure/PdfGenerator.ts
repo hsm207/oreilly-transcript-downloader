@@ -28,7 +28,64 @@ export class PdfGenerator {
       const usableWidth = pageWidth - leftMargin - rightMargin;
       let y = topMargin;
 
-      for (const el of elements) {
+      for (let i = 0; i < elements.length; i++) {
+        const el = elements[i];
+        // Special handling: if image is immediately followed by caption, render together
+        if (el.type === 'image') {
+          if (typeof window !== 'undefined') {
+            try {
+              const imgData = await PdfGenerator.loadImageAsDataUrl(el.src);
+              // Scale image to fit usableWidth, keep aspect ratio, max height 100mm
+              const img = new window.Image();
+              img.src = el.src;
+              await new Promise((res, rej) => {
+                img.onload = res;
+                img.onerror = rej;
+              });
+              let imgWidth = img.width;
+              let imgHeight = img.height;
+              // Convert px to mm (assuming 96dpi)
+              const pxToMm = (px: number) => (px * 25.4) / 96;
+              imgWidth = pxToMm(imgWidth);
+              imgHeight = pxToMm(imgHeight);
+              let drawWidth = Math.min(imgWidth, usableWidth);
+              let drawHeight = imgHeight * (drawWidth / imgWidth);
+              if (drawHeight > 100) {
+                drawHeight = 100;
+                drawWidth = imgWidth * (drawHeight / imgHeight);
+              }
+              if (y + drawHeight > pageHeight - bottomMargin) {
+                doc.addPage();
+                y = topMargin;
+              }
+              doc.addImage(imgData, 'JPEG', leftMargin, y, drawWidth, drawHeight);
+              y += drawHeight + 2;
+              // If next element is a caption, render it right after the image
+              const next = elements[i + 1];
+              if (next && next.type === 'caption') {
+                const fontSize = 10;
+                doc.setFontSize(fontSize);
+                doc.setTextColor(120);
+                doc.setFont('helvetica', 'italic');
+                const lines = doc.splitTextToSize(next.text, usableWidth);
+                for (const line of lines) {
+                  if (y + fontSize > pageHeight - bottomMargin) {
+                    doc.addPage();
+                    y = topMargin;
+                  }
+                  doc.text(line, leftMargin, y);
+                  y += fontSize + 1;
+                }
+                doc.setTextColor(0);
+                doc.setFont('helvetica', 'normal');
+                i++; // Skip the caption in the next iteration
+              }
+            } catch (err) {
+              await PersistentLogger.warn(`Failed to load image: ${el.src}`);
+            }
+          }
+          continue;
+        }
         switch (el.type) {
           case 'heading': {
             const fontSize = 16 + (6 - Math.min(el.level, 6)) * 2;
@@ -76,8 +133,12 @@ export class PdfGenerator {
             break;
           }
           case 'caption': {
+            // If this caption was already handled after an image, skip
+            // (handled by the lookahead logic above)
             const fontSize = 10;
             doc.setFontSize(fontSize);
+            doc.setTextColor(120);
+            doc.setFont('helvetica', 'italic');
             const lines = doc.splitTextToSize(el.text, usableWidth);
             for (const line of lines) {
               if (y + fontSize > pageHeight - bottomMargin) {
@@ -87,6 +148,8 @@ export class PdfGenerator {
               doc.text(line, leftMargin, y);
               y += fontSize + 1;
             }
+            doc.setTextColor(0);
+            doc.setFont('helvetica', 'normal');
             break;
           }
           case 'image': {
