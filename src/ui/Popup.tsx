@@ -17,9 +17,7 @@ export const Popup = () => {
   useEffect(() => {
     getCurrentPageInfo().then((pageInfo) => {
       setIsVideoPage(pageInfo.isVideoPage);
-      setIsBookPage(
-        !!pageInfo.url && /\/library\/view\//.test(pageInfo.url)
-      );
+      setIsBookPage(!!pageInfo.url && /\/library\/view\//.test(pageInfo.url));
       setLoading(false);
     });
   }, []);
