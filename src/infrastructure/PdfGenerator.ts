@@ -152,41 +152,43 @@ export class PdfGenerator {
             doc.setFont('helvetica', 'normal');
             break;
           }
-          case 'image': {
-            if (typeof window !== 'undefined') {
-              try {
-                const imgData = await PdfGenerator.loadImageAsDataUrl(el.src);
-                // Scale image to fit usableWidth, keep aspect ratio, max height 100mm
-                const img = new window.Image();
-                img.src = el.src;
-                await new Promise((res, rej) => {
-                  img.onload = res;
-                  img.onerror = rej;
-                });
-                let imgWidth = img.width;
-                let imgHeight = img.height;
-                // Convert px to mm (assuming 96dpi)
-                const pxToMm = (px: number) => (px * 25.4) / 96;
-                imgWidth = pxToMm(imgWidth);
-                imgHeight = pxToMm(imgHeight);
-                let drawWidth = Math.min(imgWidth, usableWidth);
-                let drawHeight = imgHeight * (drawWidth / imgWidth);
-                if (drawHeight > 100) {
-                  drawHeight = 100;
-                  drawWidth = imgWidth * (drawHeight / imgHeight);
-                }
-                if (y + drawHeight > pageHeight - bottomMargin) {
-                  doc.addPage();
-                  y = topMargin;
-                }
-                doc.addImage(imgData, 'JPEG', leftMargin, y, drawWidth, drawHeight);
-                y += drawHeight + 2;
-              } catch (err) {
-                await PersistentLogger.warn(`Failed to load image: ${el.src}`);
-              }
-            }
-            break;
-          }
+          // The 'image' case is already handled by the `if (el.type === 'image')`
+          // block at the beginning of the loop. This case is redundant and can be removed.
+          // case 'image': {
+          //   if (typeof window !== 'undefined') {
+          //     try {
+          //       const imgData = await PdfGenerator.loadImageAsDataUrl(el.src);
+          //       // Scale image to fit usableWidth, keep aspect ratio, max height 100mm
+          //       const img = new window.Image();
+          //       img.src = el.src;
+          //       await new Promise((res, rej) => {
+          //         img.onload = res;
+          //         img.onerror = rej;
+          //       });
+          //       let imgWidth = img.width;
+          //       let imgHeight = img.height;
+          //       // Convert px to mm (assuming 96dpi)
+          //       const pxToMm = (px: number) => (px * 25.4) / 96;
+          //       imgWidth = pxToMm(imgWidth);
+          //       imgHeight = pxToMm(imgHeight);
+          //       let drawWidth = Math.min(imgWidth, usableWidth);
+          //       let drawHeight = imgHeight * (drawWidth / imgWidth);
+          //       if (drawHeight > 100) {
+          //         drawHeight = 100;
+          //         drawWidth = imgWidth * (drawHeight / imgHeight);
+          //       }
+          //       if (y + drawHeight > pageHeight - bottomMargin) {
+          //         doc.addPage();
+          //         y = topMargin;
+          //       }
+          //       doc.addImage(imgData, 'JPEG', leftMargin, y, drawWidth, drawHeight);
+          //       y += drawHeight + 2;
+          //     } catch (err) {
+          //       await PersistentLogger.warn(`Failed to load image: ${el.src}`);
+          //     }
+          //   }
+          //   break;
+          // }
         }
       }
       doc.save(filename);
