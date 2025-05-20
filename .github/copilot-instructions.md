@@ -9,7 +9,6 @@ This project is a browser extension that allows users to download transcripts fr
 - Tests are colocated with the code they test
 - Always refer to `CONTRIBUTING.md` for file placement guidelines
 
-
 ## Core Development Principles
 
 - **Judicious Logging**: Use `PersistentLogger` for important debug, info, warning, and error messages that aid in diagnosing extension behavior across content, background, and domain layers. Avoid excessive or redundant logging; prefer logs that help trace user actions, extension state changes, or error conditions. Always use the appropriate log level (`log`, `info`, `warn`, `error`, `debug`).
