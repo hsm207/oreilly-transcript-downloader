@@ -34,6 +34,8 @@ describe('PdfGenerator', () => {
           addImage: addImageMock,
           save: saveMock,
           splitTextToSize,
+          setTextColor: vi.fn(),
+          setFont: vi.fn(),
         })),
       };
     });
