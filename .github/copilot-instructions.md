@@ -20,8 +20,8 @@ This project is a browser extension that allows users to download transcripts fr
 After making changes, run these commands to ensure quality:
 
 1. `npm run format` - Format the code
-2. `npm run test` - Run automated tests
-3. `npm run build` - Build the project
+2. `npx vitest run` - Run automated tests
+3. `npx vite build` - Build the project
 4. Always use `npx` when running Vite commands
 
 ## Coding Standards
