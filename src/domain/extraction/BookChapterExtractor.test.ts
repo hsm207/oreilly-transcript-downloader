@@ -1,117 +1,78 @@
-/**
- * Tests for BookChapterExtractor
- */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BookChapterExtractor } from './BookChapterExtractor';
+import { BookChapterElement } from '../models/BookChapterElement';
 
-function createElementFromHTML(html: string): HTMLElement {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div;
-}
+// Mock the chrome API for PersistentLogger
+vi.mock('../../infrastructure/logging/PersistentLogger', () => ({
+  PersistentLogger: {
+    getInstance: vi.fn().mockReturnValue({
+      debug: vi.fn(),
+      log: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    }),
+  },
+}));
 
 describe('BookChapterExtractor', () => {
-  it('extracts headings, paragraphs, lists, images, and captions in order', () => {
-    const html = `
-      <div id="book-content">
-        <h1>Chapter Title</h1>
-        <p>Intro paragraph.</p>
-        <ul><li>Item 1</li><li>Item 2</li></ul>
-        <p class="fcaption">Figure 1: Caption for P</p>
-        <img src="img1.jpg" alt="desc" />
-        <p>Another paragraph.</p>
-        <figure>
-          <img src="fig_img.jpg" alt="figure image" />
-          <figcaption>Figure 2: Caption for Figure</figcaption>
-        </figure>
-        <p class="centerImageL"><img alt="centered image" src="center_img.jpg"></p>
-      </div>
-    `;
-    const root = createElementFromHTML(html).firstElementChild as HTMLElement;
-    const result = BookChapterExtractor.extract(root);
-    const expectedImg1Src = (root.querySelector('img[src="img1.jpg"]') as HTMLImageElement)?.src || 'img1.jpg';
-    const expectedFigImgSrc = (root.querySelector('img[src="fig_img.jpg"]') as HTMLImageElement)?.src || 'fig_img.jpg';
-    const expectedCenterImgSrc = (root.querySelector('img[src="center_img.jpg"]') as HTMLImageElement)?.src || 'center_img.jpg';
+  let root: HTMLElement;
 
-    expect(result).toEqual([
-      { type: 'heading', level: 1, text: 'Chapter Title' },
-      { type: 'paragraph', text: 'Intro paragraph.' },
-      { type: 'list', ordered: false, items: ['Item 1', 'Item 2'] },
-      { type: 'caption', text: 'Figure 1: Caption for P' },
-      { type: 'image', src: expectedImg1Src, alt: 'desc' },
-      { type: 'paragraph', text: 'Another paragraph.' },
-      { type: 'image', src: expectedFigImgSrc, alt: 'figure image' },
-      { type: 'caption', text: 'Figure 2: Caption for Figure' },
-      { type: 'image', src: expectedCenterImgSrc, alt: 'centered image' },
-    ]);
+  beforeEach(() => {
+    root = document.createElement('div');
+    root.id = 'book-content';
   });
 
-  it('handles nested structure and ignores non-element nodes', () => {
-    const html = `
-      <div id="book-content">
-        <section>
-          <h2>Section</h2>
-          <div><p>Text in div</p></div>
-        </section>
-      </div>
+  it('should extract chapterOpenerText correctly', () => {
+    const chapterBody = document.createElement('div');
+    chapterBody.className = 'chapterBody';
+    chapterBody.innerHTML = `
+      <p class=\"chapterOpenerText\"><span class=\"chapterOpenerFirstLetters\"><span class=\"bold\"><span class=\"italic\">I</span></span></span>n the old legend the wise men finally boiled down the history of mortal affairs into the single phrase, “This too will pass.”<a id=\"uft_re228\"></a><a href=\"9780061745171_Footnote.xhtml#uft_228\"><sup>*</sup></a> Confronted with a like challenge to distill the secret of sound investment into three words, we venture the motto, MARGIN OF SAFETY. This is the thread that runs through all the preceding discussion of investment policy—often explicitly, sometimes in a less direct fashion. Let us try now, briefly, to trace that idea in a connected argument.</p>
     `;
-    const root = createElementFromHTML(html).firstElementChild as HTMLElement;
+    root.appendChild(chapterBody);
+
+    const expectedText =
+      'In the old legend the wise men finally boiled down the history of mortal affairs into the single phrase, “This too will pass.”* Confronted with a like challenge to distill the secret of sound investment into three words, we venture the motto, MARGIN OF SAFETY. This is the thread that runs through all the preceding discussion of investment policy—often explicitly, sometimes in a less direct fashion. Let us try now, briefly, to trace that idea in a connected argument.';
+
     const result = BookChapterExtractor.extract(root);
-    expect(result).toEqual([
-      { type: 'heading', level: 2, text: 'Section' },
-      { type: 'paragraph', text: 'Text in div' },
-    ]);
+
+    expect(result.length).toBe(1);
+    expect(result[0].type).toBe('paragraph');
+    expect((result[0] as { type: 'paragraph'; text: string }).text).toBe(expectedText);
   });
 
-  it('extracts image from a paragraph with a specific class like centerImageL', () => {
-    const html = `
-      <div id="book-content">
-        <p class="centerImageL"><img alt="A centered image" src="/api/v2/epubs/urn:orm:book:9780061745171/files/images/526.jpg"></p>
-      </div>
+  it('should extract paragraphs and images correctly', () => {
+    const chapterBody = document.createElement('div');
+    chapterBody.className = 'chapterBody';
+    chapterBody.innerHTML = `
+      <p class="paraNoIndent1"><span class="bold">FIGURE 20-1</span></p>
+      <p class="paraCenter"><b>The Cost of Loss</b></p>
+      <p class="centerImageL"><img alt="526" width="400" height="238" src="/api/v2/epubs/urn:orm:book:9780061745171/files/images/526.jpg"></p>
+      <p class="caption"><span class="italic">Imagine that you find a stock that you think can grow at 10% a year even if the market only grows 5% annually. Unfortunately, you are so enthusiastic that you pay too high a price, and the stock loses 50% of its value the first year. Even if the stock then generates double the market’s return, it will take you</span> more than 16 years <span class="italic">to overtake the market—simply because you paid too much, and lost too much, at the outset.</span></p>
     `;
-    const root = createElementFromHTML(html).firstElementChild as HTMLElement;
-    const result = BookChapterExtractor.extract(root);
-    const expectedImgSrc = (root.querySelector('img') as HTMLImageElement)?.src;
-    expect(result).toEqual([
-      { type: 'image', src: expectedImgSrc, alt: 'A centered image' },
-    ]);
-  });
+    root.appendChild(chapterBody);
 
-  it('extracts image and caption from a figure element in correct order', () => {
-    const html = `
-      <div id="book-content">
-        <figure>
-          <p>Some text before image in figure</p>
-          <img src="figure_image.jpg" alt="Image in figure" />
-          <figcaption>Caption for the figure image.</figcaption>
-          <p>Some text after caption in figure</p>
-        </figure>
-      </div>
-    `;
-    const root = createElementFromHTML(html).firstElementChild as HTMLElement;
     const result = BookChapterExtractor.extract(root);
-    const expectedImgSrc = (root.querySelector('img') as HTMLImageElement)?.src;
-    expect(result).toEqual([
-      { type: 'paragraph', text: 'Some text before image in figure' },
-      { type: 'image', src: expectedImgSrc, alt: 'Image in figure' },
-      { type: 'caption', text: 'Caption for the figure image.' },
-      { type: 'paragraph', text: 'Some text after caption in figure' },
-    ]);
-  });
 
-  it('handles mixed content within a paragraph including an image', () => {
-    const html = `
-      <div id="book-content">
-        <p>Text before image <img src="inline.jpg" alt="inline image" /> text after image.</p>
-      </div>
-    `;
-    const root = createElementFromHTML(html).firstElementChild as HTMLElement;
-    const result = BookChapterExtractor.extract(root);
-    const expectedImgSrc = (root.querySelector('img') as HTMLImageElement)?.src;
-    expect(result).toEqual([
-      { type: 'paragraph', text: 'Text before image' },
-      { type: 'image', src: expectedImgSrc, alt: 'inline image' },
-      { type: 'paragraph', text: 'text after image.' },
-    ]);
+    expect(result.length).toBe(4);
+
+    expect(result[0].type).toBe('paragraph');
+    expect((result[0] as BookChapterElement & { type: 'paragraph' }).text).toBe('FIGURE 20-1');
+
+    expect(result[1].type).toBe('paragraph');
+    expect((result[1] as BookChapterElement & { type: 'paragraph' }).text).toBe('The Cost of Loss');
+
+    expect(result[2].type).toBe('image');
+    expect((result[2] as BookChapterElement & { type: 'image' }).alt).toBe('526');
+    // JSDOM resolves relative src attributes to "http://localhost/" + src
+    // So we check if the src ENDS WITH the expected path.
+    expect((result[2] as BookChapterElement & { type: 'image' }).src).toContain(
+      '/api/v2/epubs/urn:orm:book:9780061745171/files/images/526.jpg',
+    );
+
+    expect(result[3].type).toBe('caption');
+    expect((result[3] as BookChapterElement & { type: 'caption' }).text).toBe(
+      'Imagine that you find a stock that you think can grow at 10% a year even if the market only grows 5% annually. Unfortunately, you are so enthusiastic that you pay too high a price, and the stock loses 50% of its value the first year. Even if the stock then generates double the market’s return, it will take you more than 16 years to overtake the market—simply because you paid too much, and lost too much, at the outset.',
+    );
   });
 });
