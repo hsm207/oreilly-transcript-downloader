@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { BookChapterElement } from '../domain/extraction/BookChapterExtractor';
+import { BookChapterElement } from '../domain/models/BookChapterElement';
 import { PersistentLogger } from './logging/PersistentLogger';
 
 /**
