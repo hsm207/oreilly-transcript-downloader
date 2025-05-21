@@ -25,19 +25,6 @@ export class BookChapterExtractor {
   // TODO: Improve handling of inline footnote markers (like asterisks) that aren't wrapped in HTML elements
 
   /**
-   * Normalizes text by replacing curly quotes with straight quotes for consistent output,
-   * normalizing whitespace, and trimming.
-   * @param text The input text to normalize
-   * @returns Normalized text with standardized quotes and whitespace.
-   */
-  /**
-   * @deprecated Use TextNormalizer.normalizeText
-   */
-  private static normalizeText(text: string): string {
-    return TextNormalizer.normalizeText(text);
-  }
-
-  /**
    * Cleans the text content of an HTML element by removing footnotes and then normalizing it.
    * @param element The HTML element from which to extract and clean text.
    * @returns Cleaned and normalized text content.
