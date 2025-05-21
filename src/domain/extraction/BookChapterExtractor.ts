@@ -2,11 +2,17 @@
  * BookChapterExtractor extracts content (text, images, captions) from the O'Reilly book chapters.
  * Traverses the DOM top-to-bottom using a recursive approach, preserving the exact sequence of elements as they appear.
  * The extractor identifies content based on semantic HTML tags and attributes, rather than fixed class names.
+ * 
+ * Note: Current implementation has limited handling of footnote markers that appear as standalone
+ * characters (like asterisks) in the text rather than as proper HTML elements. These may be
+ * inconsistently preserved or removed in the extraction process.
  */
 import { BookChapterElement } from '../models/BookChapterElement';
 import { PersistentLogger } from '../../infrastructure/logging/PersistentLogger';
 
 export class BookChapterExtractor {
+  // TODO: Improve handling of inline footnote markers (like asterisks) that aren't wrapped in HTML elements
+  
   /**
    * Normalizes text by replacing curly quotes with straight quotes for consistent output,
    * normalizing whitespace, and trimming.
@@ -48,6 +54,10 @@ export class BookChapterExtractor {
       }
     });
 
+    // NOTE: Currently, we don't have handling for standalone footnote markers like asterisks (*).
+    // These can appear in the text content but aren't wrapped in HTML elements that we can target.
+    // A future improvement could identify and remove these markers based on context patterns.
+    
     let text = clonedElement.textContent || "";
     return BookChapterExtractor.normalizeText(text);
   }
