@@ -1,8 +1,22 @@
 import { TableExtractor } from './TableExtractor';
-// import { BookChapterElement } from "../../models/BookChapterElement";
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { PersistentLogger } from '../../../infrastructure/logging/PersistentLogger';
+
+// Only mock the logger - it has side effects we don't want in tests
+vi.mock('../../../infrastructure/logging/PersistentLogger', () => ({
+  PersistentLogger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 describe('TableExtractor', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   function createTable(html: string): HTMLElement {
     const div = document.createElement('div');
     div.innerHTML = html.trim();
@@ -23,6 +37,11 @@ describe('TableExtractor', () => {
       </table>
     `);
     const result = TableExtractor.extract(table);
+
+    // Only verify logger interactions
+    expect(PersistentLogger.debug).toHaveBeenCalled();
+    expect(PersistentLogger.info).toHaveBeenCalled();
+
     expect(result.type).toBe('table');
     expect((result as any).caption).toBe('Sample Table');
     expect((result as any).rows.length).toBe(3);
@@ -39,6 +58,7 @@ describe('TableExtractor', () => {
       </table>
     `);
     const result = TableExtractor.extract(table);
+
     expect(result.type).toBe('table');
     expect((result as any).caption).toBeUndefined();
     expect((result as any).rows.length).toBe(1);
@@ -54,6 +74,7 @@ describe('TableExtractor', () => {
       </table>
     `);
     const result = TableExtractor.extract(table);
+
     expect((result as any).rows[0].cells[0].colspan).toBe(2);
     expect((result as any).rows[1].cells[0].rowspan).toBe(2);
   });
@@ -61,6 +82,8 @@ describe('TableExtractor', () => {
   it('returns empty rows for empty table', () => {
     const table = createTable(`<table></table>`);
     const result = TableExtractor.extract(table);
+
+    expect(PersistentLogger.info).toHaveBeenCalled();
     expect(result.type).toBe('table');
     expect((result as any).rows.length).toBe(0);
   });
