@@ -2,7 +2,7 @@
  * BookChapterExtractor extracts content (text, images, captions, tables) from the O'Reilly book chapters.
  * Traverses the DOM top-to-bottom using a recursive approach, preserving the exact sequence of elements as they appear.
  * The extractor identifies content based on semantic HTML tags and attributes, rather than fixed class names.
- * 
+ *
  * Content types extracted:
  * - Headings (h1-h6)
  * - Paragraphs and text content
@@ -10,7 +10,7 @@
  * - Lists (ordered and unordered)
  * - Tables with headers, data cells, and captions
  * - Captions for figures and tables
- * 
+ *
  * Note: Current implementation has limited handling of footnote markers that appear as standalone
  * characters (like asterisks) in the text rather than as proper HTML elements. These may be
  * inconsistently preserved or removed in the extraction process.
@@ -20,7 +20,7 @@ import { PersistentLogger } from '../../infrastructure/logging/PersistentLogger'
 
 export class BookChapterExtractor {
   // TODO: Improve handling of inline footnote markers (like asterisks) that aren't wrapped in HTML elements
-  
+
   /**
    * Normalizes text by replacing curly quotes with straight quotes for consistent output,
    * normalizing whitespace, and trimming.
@@ -31,7 +31,7 @@ export class BookChapterExtractor {
     return text
       .replace(/[“”]/g, '"') // Convert curly double quotes to straight quotes
       .replace(/[‘’]/g, "'") // Convert curly single quotes/apostrophes to straight apostrophes
-      .replace(/\s+/g, " ") // Normalize whitespace (replace multiple spaces/newlines with single space)
+      .replace(/\s+/g, ' ') // Normalize whitespace (replace multiple spaces/newlines with single space)
       .trim();
   }
 
@@ -44,19 +44,19 @@ export class BookChapterExtractor {
     const clonedElement = element.cloneNode(true) as HTMLElement;
 
     // Remove <sup> elements, commonly used for footnote markers.
-    clonedElement.querySelectorAll("sup").forEach((sup) => sup.remove());
+    clonedElement.querySelectorAll('sup').forEach((sup) => sup.remove());
 
     // Remove <a> tags that are likely footnote links or empty anchors for footnotes.
-    clonedElement.querySelectorAll("a").forEach((a) => {
-      const href = a.getAttribute("href");
-      const id = a.getAttribute("id");
+    clonedElement.querySelectorAll('a').forEach((a) => {
+      const href = a.getAttribute('href');
+      const id = a.getAttribute('id');
       // Check for typical footnote link patterns or empty anchors used by O'Reilly
       if (
         (href &&
-          (href.includes("Footnote.xhtml") ||
-            href.startsWith("#ft_") ||
-            href.startsWith("#footnote"))) ||
-        (id && (id.startsWith("uft_re") || id.startsWith("ft_re")) && !a.textContent?.trim())
+          (href.includes('Footnote.xhtml') ||
+            href.startsWith('#ft_') ||
+            href.startsWith('#footnote'))) ||
+        (id && (id.startsWith('uft_re') || id.startsWith('ft_re')) && !a.textContent?.trim())
       ) {
         a.remove();
       }
@@ -65,8 +65,8 @@ export class BookChapterExtractor {
     // NOTE: Currently, we don't have handling for standalone footnote markers like asterisks (*).
     // These can appear in the text content but aren't wrapped in HTML elements that we can target.
     // A future improvement could identify and remove these markers based on context patterns.
-    
-    let text = clonedElement.textContent || "";
+
+    let text = clonedElement.textContent || '';
     return BookChapterExtractor.normalizeText(text);
   }
 
@@ -80,25 +80,25 @@ export class BookChapterExtractor {
       const htmlElement = node as HTMLElement;
       const tagName = htmlElement.tagName.toLowerCase();
       const classList = htmlElement.classList;
-      
+
       PersistentLogger.debug?.(
         `Processing element: ${tagName}${htmlElement.id ? '#' + htmlElement.id : ''}${
           classList && classList.length ? '.' + Array.from(classList).join('.') : ''
-        }`
+        }`,
       );
 
       // Skip script, style, and other non-content elements
       if (
         [
-          "script",
-          "style",
-          "meta",
-          "link",
-          "head",
-          "iframe",
-          "noscript",
-          "template",
-          "nav", // Navigation elements are usually not part of main content
+          'script',
+          'style',
+          'meta',
+          'link',
+          'head',
+          'iframe',
+          'noscript',
+          'template',
+          'nav', // Navigation elements are usually not part of main content
         ].includes(tagName)
       ) {
         PersistentLogger.debug?.(`Skipping non-content element: ${tagName}`);
@@ -108,13 +108,13 @@ export class BookChapterExtractor {
       // Headings (h1-h6)
       if (tagName.match(/^h[1-6]$/)) {
         const level = parseInt(tagName.substring(1), 10);
-        
+
         // Special handling for complex chapter headers with line breaks and quotes
         let text = '';
         if (htmlElement.querySelector('.chapterNumber, .chapterTitle')) {
           // If there's a span for chapter number/title inside, let's combine them with proper spacing
           const parts: string[] = [];
-          htmlElement.childNodes.forEach(child => {
+          htmlElement.childNodes.forEach((child) => {
             if (child.nodeType === Node.ELEMENT_NODE) {
               const childText = BookChapterExtractor.cleanNodeText(child as HTMLElement);
               if (childText) parts.push(childText);
@@ -127,59 +127,67 @@ export class BookChapterExtractor {
           // Standard heading - just clean the text
           text = BookChapterExtractor.cleanNodeText(htmlElement);
         }
-        
+
         if (text) {
-          PersistentLogger.debug?.(`Adding heading level ${level}: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
-          elements.push({ type: "heading", level, text });
+          PersistentLogger.debug?.(
+            `Adding heading level ${level}: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
+          );
+          elements.push({ type: 'heading', level, text });
         }
         return; // Processed this node, don't recurse its children for more elements from this heading
       }
 
       // Paragraphs (p) and figcaptions
-      if (tagName === "p" || tagName === "figcaption") {
+      if (tagName === 'p' || tagName === 'figcaption') {
         // Check if paragraph contains an image
         const imgElements = htmlElement.querySelectorAll('img');
         if (imgElements.length > 0) {
           // Process each image first before processing paragraph text
           for (const imgElem of Array.from(imgElements)) {
-            const src = imgElem.getAttribute("src") || "";
-            const alt = imgElem.getAttribute("alt") || "";
+            const src = imgElem.getAttribute('src') || '';
+            const alt = imgElem.getAttribute('alt') || '';
             if (src) {
               PersistentLogger.debug?.(`Adding image from paragraph: src="${src}", alt="${alt}"`);
-              elements.push({ type: "image", src, alt });
+              elements.push({ type: 'image', src, alt });
             }
           }
         }
-        
+
         // Check for non-breaking space paragraphs first - these need special handling
         // We need to check the original HTML content, not the cleaned text
         if (htmlElement.innerHTML === '&nbsp;' || htmlElement.innerHTML.trim() === '\u00A0') {
           PersistentLogger.debug?.(`Adding non-breaking space paragraph`);
-          elements.push({ type: "paragraph", text: "\u00A0" });
+          elements.push({ type: 'paragraph', text: '\u00A0' });
         } else {
           // Process normal paragraph text
           const text = BookChapterExtractor.cleanNodeText(htmlElement);
           if (text) {
             // Detect special paragraph types
-            const isChapterOpener = classList.contains("chapterOpenerText");
-            const isEpigraphText = classList.contains("chapterEpigraphText");
-            const isEpigraphSource = classList.contains("chapterEpigraphSource");
-            
+            const isChapterOpener = classList.contains('chapterOpenerText');
+            const isEpigraphText = classList.contains('chapterEpigraphText');
+            const isEpigraphSource = classList.contains('chapterEpigraphSource');
+
             // Handle different paragraph types
-            if (classList.contains("caption") || tagName === "figcaption") {
-              PersistentLogger.debug?.(`Adding caption: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
-              elements.push({ type: "caption", text });
+            if (classList.contains('caption') || tagName === 'figcaption') {
+              PersistentLogger.debug?.(
+                `Adding caption: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
+              );
+              elements.push({ type: 'caption', text });
             } else if (isEpigraphText || isEpigraphSource) {
               // Epigraphs are treated as regular paragraphs in the expected output
-              PersistentLogger.debug?.(`Adding epigraph: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
-              elements.push({ type: "paragraph", text });
+              PersistentLogger.debug?.(
+                `Adding epigraph: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
+              );
+              elements.push({ type: 'paragraph', text });
             } else {
-              PersistentLogger.debug?.(`Adding paragraph: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
+              PersistentLogger.debug?.(
+                `Adding paragraph: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
+              );
               // Only include isChapterOpener if it's true, to match the expected structure in the test
               if (isChapterOpener) {
-                elements.push({ type: "paragraph", text, isChapterOpener });
+                elements.push({ type: 'paragraph', text, isChapterOpener });
               } else {
-                elements.push({ type: "paragraph", text });
+                elements.push({ type: 'paragraph', text });
               }
             }
           }
@@ -188,11 +196,14 @@ export class BookChapterExtractor {
       }
 
       // Lists (ul, ol)
-      if (tagName === "ul" || tagName === "ol") {
+      if (tagName === 'ul' || tagName === 'ol') {
         const items: string[] = [];
         // Iterate over direct children <li> elements
         for (const childNode of Array.from(htmlElement.childNodes)) {
-          if (childNode.nodeType === Node.ELEMENT_NODE && (childNode as HTMLElement).tagName.toLowerCase() === "li") {
+          if (
+            childNode.nodeType === Node.ELEMENT_NODE &&
+            (childNode as HTMLElement).tagName.toLowerCase() === 'li'
+          ) {
             const itemText = BookChapterExtractor.cleanNodeText(childNode as HTMLElement);
             if (itemText) {
               items.push(itemText);
@@ -200,27 +211,29 @@ export class BookChapterExtractor {
           }
         }
         if (items.length > 0) {
-          elements.push({ type: "list", items, ordered: tagName === "ol" });
+          elements.push({ type: 'list', items, ordered: tagName === 'ol' });
         }
         return; // Processed
       }
-      
+
       // Tables
-      if (tagName === "table") {
-        PersistentLogger.debug?.(`Found table element: ${tagName}${htmlElement.className ? '.' + htmlElement.className.replace(' ','.') : ''}`);
+      if (tagName === 'table') {
+        PersistentLogger.debug?.(
+          `Found table element: ${tagName}${htmlElement.className ? '.' + htmlElement.className.replace(' ', '.') : ''}`,
+        );
         const tableElement = BookChapterExtractor.processTableElement(htmlElement);
         elements.push(tableElement);
         return; // Processed
       }
 
       // Images (img)
-      if (tagName === "img") {
-        const src = htmlElement.getAttribute("src") || "";
-        const alt = htmlElement.getAttribute("alt") || "";
+      if (tagName === 'img') {
+        const src = htmlElement.getAttribute('src') || '';
+        const alt = htmlElement.getAttribute('alt') || '';
         // Only add if there's a src, as per original logic for TranscriptLine images
         if (src) {
           PersistentLogger.debug?.(`Adding image: src="${src}", alt="${alt}"`);
-          elements.push({ type: "image", src, alt });
+          elements.push({ type: 'image', src, alt });
         } else {
           PersistentLogger.debug?.(`Skipping image with empty src`);
         }
@@ -228,41 +241,52 @@ export class BookChapterExtractor {
       }
 
       // Cite elements (often part of blockquotes or for attributions)
-      if (tagName === "cite") {
+      if (tagName === 'cite') {
         const text = BookChapterExtractor.cleanNodeText(htmlElement);
         if (text) {
           // Represent cite content as a paragraph
-          elements.push({ type: "paragraph", text });
+          elements.push({ type: 'paragraph', text });
         }
         return; // Processed
       }
-      
+
       // Tables (table)
-      if (tagName === "table") {
+      if (tagName === 'table') {
         const tableData = BookChapterExtractor.processTableElement(htmlElement);
         if (tableData) {
           elements.push(tableData);
         }
         return; // Processed
       }
-      
+
       // Blockquotes, Figures, Divs, Sections, Articles, Main, Body, Header, Footer, Aside etc.
       // These are container elements, or elements whose children should be processed.
-      
+
       // These content elements are already handled above with specific logic
       // No need to process them again - just for documentation
-      
+
       // Define container elements - these are elements that typically just wrap other content
-      const containerElements = ["blockquote", "figure", "div", "section", "article", "main", "body", "header", "footer", "aside"];
-      
+      const containerElements = [
+        'blockquote',
+        'figure',
+        'div',
+        'section',
+        'article',
+        'main',
+        'body',
+        'header',
+        'footer',
+        'aside',
+      ];
+
       // Special containers that we always want to process regardless of tag name
-      const isSpecialContainer = 
-        htmlElement.id === "book-content" || 
-        htmlElement.id === "sbo-rt-content" || 
-        classList.contains("chapter") || 
-        classList.contains("chapterBody") || 
-        classList.contains("chapterHead");
-      
+      const isSpecialContainer =
+        htmlElement.id === 'book-content' ||
+        htmlElement.id === 'sbo-rt-content' ||
+        classList.contains('chapter') ||
+        classList.contains('chapterBody') ||
+        classList.contains('chapterHead');
+
       // Only process children if this is a container element or special container
       // This avoids duplicate processing of content
       if (containerElements.includes(tagName) || isSpecialContainer) {
@@ -271,12 +295,11 @@ export class BookChapterExtractor {
           BookChapterExtractor.processNode(child, elements);
         }
       }
-      
+
       // We've handled either:
       // 1. A content element directly (h1-6, p, ul, ol, img, cite) - returned early above
       // 2. A container element (div, section, etc.) and processed its children
       // No need for additional fallthrough processing
-
     } else if (node.nodeType === Node.TEXT_NODE) {
       // We generally expect meaningful text to be wrapped in block elements (p, h1, li, etc.).
       // cleanNodeText on those parent elements will capture their full text content, including direct text nodes.
@@ -297,12 +320,12 @@ export class BookChapterExtractor {
   public static extract(root: HTMLElement): BookChapterElement[] {
     const elements: BookChapterElement[] = [];
     if (!root || typeof root.querySelectorAll !== 'function') {
-      PersistentLogger.warn?.("BookChapterExtractor.extract called with invalid root element.");
+      PersistentLogger.warn?.('BookChapterExtractor.extract called with invalid root element.');
       return elements;
     }
-    
+
     PersistentLogger.info?.(
-      `Starting extraction from root element: ${root.tagName}${root.id ? '#' + root.id : ''}${root.className ? '.' + root.className.replace(' ','.') : ''}`
+      `Starting extraction from root element: ${root.tagName}${root.id ? '#' + root.id : ''}${root.className ? '.' + root.className.replace(' ', '.') : ''}`,
     );
 
     BookChapterExtractor.processNode(root, elements);
@@ -320,8 +343,10 @@ export class BookChapterExtractor {
     PersistentLogger.debug?.(`Processing table element`);
 
     // Extract table rows and cells
-    const rows: { cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[] }[] = [];
-    
+    const rows: {
+      cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[];
+    }[] = [];
+
     // Check for table caption
     let caption: string | undefined = undefined;
     const captionElem = tableElement.querySelector('caption');
@@ -334,7 +359,7 @@ export class BookChapterExtractor {
     const theadElement = tableElement.querySelector('thead');
     if (theadElement) {
       const headerRows = theadElement.querySelectorAll('tr');
-      headerRows.forEach(row => {
+      headerRows.forEach((row) => {
         const rowData = BookChapterExtractor.processTableRow(row, true);
         if (rowData.cells.length > 0) {
           rows.push(rowData);
@@ -345,7 +370,7 @@ export class BookChapterExtractor {
     // Process rows in <tbody>
     const tbodyElement = tableElement.querySelector('tbody') || tableElement;
     const bodyRows = tbodyElement.querySelectorAll('tr');
-    bodyRows.forEach(row => {
+    bodyRows.forEach((row) => {
       // Default isHeader to false for tbody rows
       const rowData = BookChapterExtractor.processTableRow(row, false);
       if (rowData.cells.length > 0) {
@@ -356,43 +381,43 @@ export class BookChapterExtractor {
     // If we found a caption, include it in the table element
     if (caption) {
       PersistentLogger.info?.(`Extracted table with caption and ${rows.length} rows`);
-      return { type: "table", rows, caption };
+      return { type: 'table', rows, caption };
     } else {
       PersistentLogger.info?.(`Extracted table with ${rows.length} rows`);
-      return { type: "table", rows };
+      return { type: 'table', rows };
     }
   }
 
   /**
    * Process a single table row to extract cell data
    * @param rowElement The TR element to process
-   * @param isHeaderRow Whether this row is in a thead element 
+   * @param isHeaderRow Whether this row is in a thead element
    * @returns A TableRow object with extracted cells
    */
   private static processTableRow(
-    rowElement: HTMLTableRowElement, 
-    isHeaderRow: boolean
+    rowElement: HTMLTableRowElement,
+    isHeaderRow: boolean,
   ): { cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[] } {
     const cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[] = [];
 
     // Process th and td elements
     const cellElements = rowElement.querySelectorAll('th, td');
-    cellElements.forEach(cellElem => {
+    cellElements.forEach((cellElem) => {
       // Determine if this is a header cell - either by being a th or inheriting from isHeaderRow
       const isHeader = cellElem.tagName.toLowerCase() === 'th' || isHeaderRow;
-      
+
       // Extract colspan and rowspan attributes
       const colspan = parseInt(cellElem.getAttribute('colspan') || '1', 10);
       const rowspan = parseInt(cellElem.getAttribute('rowspan') || '1', 10);
-      
+
       // Extract cell content
       const content = BookChapterExtractor.cleanNodeText(cellElem as HTMLElement);
-      
-      cells.push({ 
-        content, 
-        isHeader, 
-        colspan, 
-        rowspan 
+
+      cells.push({
+        content,
+        isHeader,
+        colspan,
+        rowspan,
       });
     });
 
