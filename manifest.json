@@ -19,7 +19,10 @@
   "permissions": ["tabs"],
   "content_scripts": [
     {
-      "matches": ["https://learning.oreilly.com/videos/*"],
+      "matches": [
+        "https://learning.oreilly.com/videos/*",
+        "https://learning.oreilly.com/library/view/*"
+      ],
       "js": ["src/contentScript.ts"],
       "run_at": "document_idle"
     }

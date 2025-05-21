@@ -1,3 +1,4 @@
+import { BookChapterPdfService } from './application/BookChapterPdfService';
 // Content Script: Listens for transcript download requests and triggers extraction and download
 import { TranscriptDownloadStateRepository } from './infrastructure/TranscriptDownloadStateRepository';
 import { DefaultTocExtractor } from './domain/extraction/TocExtractor';
@@ -74,6 +75,21 @@ chrome.runtime.onMessage.addListener(async (message) => {
   }
   if (message.action === 'DOWNLOAD_TRANSCRIPT') {
     await handleDownloadTranscript();
+    return;
+  }
+  if (message.action === 'DOWNLOAD_CHAPTER_PDF') {
+    // Use chapter title or fallback
+    const bookContent = document.getElementById('book-content');
+    let filename = 'chapter.pdf';
+    if (bookContent) {
+      const h1 = bookContent.querySelector('h1');
+      if (h1 && h1.textContent) {
+        filename = h1.textContent.trim().replace(/\s+/g, '_') + '.pdf';
+      }
+      await BookChapterPdfService.downloadCurrentChapterAsPdf(filename);
+    } else {
+      alert('No book content found on this page.');
+    }
     return;
   }
   return true;
