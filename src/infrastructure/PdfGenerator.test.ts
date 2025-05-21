@@ -43,7 +43,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 // --- Integration Tests ---
 describe('PdfGenerator Integration Test', () => {
   // --- Test file paths ---
-  const testfilesDir = path.resolve(__dirname, '__testfiles__');
+  const testfilesDir = path.resolve(__dirname, '__testdata__');
   const PDF_FILES = {
     simple: {
       generated: path.resolve(testfilesDir, 'generated-simple-pdf.pdf'),
