@@ -1,7 +1,15 @@
 /**
- * BookChapterExtractor extracts content (text, images, captions) from the O'Reilly book chapters.
+ * BookChapterExtractor extracts content (text, images, captions, tables) from the O'Reilly book chapters.
  * Traverses the DOM top-to-bottom using a recursive approach, preserving the exact sequence of elements as they appear.
  * The extractor identifies content based on semantic HTML tags and attributes, rather than fixed class names.
+ * 
+ * Content types extracted:
+ * - Headings (h1-h6)
+ * - Paragraphs and text content
+ * - Images with their alt text
+ * - Lists (ordered and unordered)
+ * - Tables with headers, data cells, and captions
+ * - Captions for figures and tables
  * 
  * Note: Current implementation has limited handling of footnote markers that appear as standalone
  * characters (like asterisks) in the text rather than as proper HTML elements. These may be
@@ -196,6 +204,14 @@ export class BookChapterExtractor {
         }
         return; // Processed
       }
+      
+      // Tables
+      if (tagName === "table") {
+        PersistentLogger.debug?.(`Found table element: ${tagName}${htmlElement.className ? '.' + htmlElement.className.replace(' ','.') : ''}`);
+        const tableElement = BookChapterExtractor.processTableElement(htmlElement);
+        elements.push(tableElement);
+        return; // Processed
+      }
 
       // Images (img)
       if (tagName === "img") {
@@ -217,6 +233,15 @@ export class BookChapterExtractor {
         if (text) {
           // Represent cite content as a paragraph
           elements.push({ type: "paragraph", text });
+        }
+        return; // Processed
+      }
+      
+      // Tables (table)
+      if (tagName === "table") {
+        const tableData = BookChapterExtractor.processTableElement(htmlElement);
+        if (tableData) {
+          elements.push(tableData);
         }
         return; // Processed
       }
@@ -284,5 +309,93 @@ export class BookChapterExtractor {
 
     PersistentLogger.info?.(`Extraction complete. Found ${elements.length} elements.`);
     return elements;
+  }
+
+  /**
+   * Extracts content from table elements, handling captions, headers, and data cells.
+   * @param tableElement The HTML table element to process
+   * @returns A BookChapterElement of type 'table'
+   */
+  private static processTableElement(tableElement: HTMLElement): BookChapterElement {
+    PersistentLogger.debug?.(`Processing table element`);
+
+    // Extract table rows and cells
+    const rows: { cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[] }[] = [];
+    
+    // Check for table caption
+    let caption: string | undefined = undefined;
+    const captionElem = tableElement.querySelector('caption');
+    if (captionElem && captionElem.textContent) {
+      caption = BookChapterExtractor.normalizeText(captionElem.textContent);
+      PersistentLogger.debug?.(`Found table caption: "${caption}"`);
+    }
+
+    // Process rows - first handle any rows in <thead> if present
+    const theadElement = tableElement.querySelector('thead');
+    if (theadElement) {
+      const headerRows = theadElement.querySelectorAll('tr');
+      headerRows.forEach(row => {
+        const rowData = BookChapterExtractor.processTableRow(row, true);
+        if (rowData.cells.length > 0) {
+          rows.push(rowData);
+        }
+      });
+    }
+
+    // Process rows in <tbody>
+    const tbodyElement = tableElement.querySelector('tbody') || tableElement;
+    const bodyRows = tbodyElement.querySelectorAll('tr');
+    bodyRows.forEach(row => {
+      // Default isHeader to false for tbody rows
+      const rowData = BookChapterExtractor.processTableRow(row, false);
+      if (rowData.cells.length > 0) {
+        rows.push(rowData);
+      }
+    });
+
+    // If we found a caption, include it in the table element
+    if (caption) {
+      PersistentLogger.info?.(`Extracted table with caption and ${rows.length} rows`);
+      return { type: "table", rows, caption };
+    } else {
+      PersistentLogger.info?.(`Extracted table with ${rows.length} rows`);
+      return { type: "table", rows };
+    }
+  }
+
+  /**
+   * Process a single table row to extract cell data
+   * @param rowElement The TR element to process
+   * @param isHeaderRow Whether this row is in a thead element 
+   * @returns A TableRow object with extracted cells
+   */
+  private static processTableRow(
+    rowElement: HTMLTableRowElement, 
+    isHeaderRow: boolean
+  ): { cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[] } {
+    const cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[] = [];
+
+    // Process th and td elements
+    const cellElements = rowElement.querySelectorAll('th, td');
+    cellElements.forEach(cellElem => {
+      // Determine if this is a header cell - either by being a th or inheriting from isHeaderRow
+      const isHeader = cellElem.tagName.toLowerCase() === 'th' || isHeaderRow;
+      
+      // Extract colspan and rowspan attributes
+      const colspan = parseInt(cellElem.getAttribute('colspan') || '1', 10);
+      const rowspan = parseInt(cellElem.getAttribute('rowspan') || '1', 10);
+      
+      // Extract cell content
+      const content = BookChapterExtractor.cleanNodeText(cellElem as HTMLElement);
+      
+      cells.push({ 
+        content, 
+        isHeader, 
+        colspan, 
+        rowspan 
+      });
+    });
+
+    return { cells };
   }
 }
