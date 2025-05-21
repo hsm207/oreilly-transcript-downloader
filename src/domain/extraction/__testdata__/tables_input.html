@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Table Test</title>
+</head>
+<body>
+  <div id="book-content">
+    <div class="chapter">
+      <div class="chapterBody">
+        <h2>Table Examples</h2>
+        <p>This is a paragraph before the table.</p>
+        
+        <!-- Table with headers, data rows, and caption -->
+        <table class="tableNL">
+          <caption>Table 1: Sample data with caption</caption>
+          <colgroup>
+            <col style="width: 30%;">
+            <col style="width: 70%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Header 1</th>
+              <th>Header 2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <p class="tab1bL">Transmission</p>
+              </td>
+              <td>
+                <p class="tab1b">The captured data is transferred to some location where it is converted into an internal format understandable by the system (transcription). Today, digital solutions tend to achieve the transmission electronically and sometimes the transcription process is performed within the same device as the data capture, thus not requiring transmission, other than some internal data transfer within the device.</p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p class="tab1bL">Transcription</p>
+              </td>
+              <td>
+                <p class="tab1b">The captured data is converted (transcribed) into a computer-readable format. Historically this would have been achieved by a data entry operator 'keying' the data using a keyboard, but, again, modern digital solutions have a number of options available, discussed later.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <p>This is a paragraph after the first table.</p>
+        
+        <!-- Table with colspan and rowspan -->
+        <table class="tableNL">
+          <colgroup>
+            <col style="width: 25%;">
+            <col style="width: 25%;">
+            <col style="width: 25%;">
+            <col style="width: 25%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th colspan="2">Combined Header</th>
+              <th>Header 3</th>
+              <th>Header 4</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td rowspan="2">Cell spanning two rows</td>
+              <td>Regular cell</td>
+              <td>Regular cell</td>
+              <td>Regular cell</td>
+            </tr>
+            <tr>
+              <td>Row 2 cell</td>
+              <td colspan="2">Cell spanning two columns</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <p>This is a paragraph after the second table.</p>
+        
+        <!-- Table with empty cells and no caption -->
+        <table class="tableNL">
+          <tbody>
+            <tr>
+              <td>Cell with content</td>
+              <td></td>
+              <td>Another cell</td>
+            </tr>
+            <tr>
+              <td>More content</td>
+              <td>Middle cell</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <p>This is the final paragraph.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

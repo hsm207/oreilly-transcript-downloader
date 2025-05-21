@@ -344,4 +344,149 @@ describe('BookChapterExtractor', () => {
       }
     });
   });
+
+  /**
+   * This test verifies that the BookChapterExtractor correctly extracts tables
+   * from HTML content, including tables with headers, data cells, and captions.
+   * 
+   * The test covers:
+   * - Tables with captions and headers
+   * - Tables with colspan and rowspan attributes
+   * - Tables with empty cells
+   * - Tables without captions
+   */
+  it('should extract tables with proper structure', () => {
+    // Load the HTML input from the test data file
+    const htmlInput = fs.readFileSync(
+      path.resolve(__dirname, '__testdata__/tables_input.html'),
+      'utf-8',
+    );
+    
+    // Setup test DOM using the HTML input
+    document.body.innerHTML = htmlInput;
+    // Get the chapter div which contains all the content elements to be extracted
+    const chapterDiv = document.querySelector('.chapter') as HTMLElement;
+    
+    // Load the expected output
+    const expectedJson = fs.readFileSync(
+      path.resolve(__dirname, '__testdata__/tables_expected.json'),
+      'utf-8',
+    );
+    const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
+    
+    // Extract content using the BookChapterExtractor
+    const result = BookChapterExtractor.extract(chapterDiv);
+
+    // Log results for easier debugging
+    console.log('Table test - Expected elements count:', expectedElements.length);
+    console.log('Table test - Actual elements count:', result.length);
+    
+    // Count the number of table elements
+    const expectedTables = expectedElements.filter(e => e.type === 'table');
+    const actualTables = result.filter(e => e.type === 'table');
+    
+    console.log('Table test - Expected table elements:', expectedTables.length);
+    console.log('Table test - Actual table elements:', actualTables.length);
+
+    expect(result.length).toBe(expectedElements.length);
+    
+    // Verify each element type and structure
+    result.forEach((actualElement, index) => {
+      const expectedElement = expectedElements[index];
+      expect(actualElement.type).toBe(expectedElement.type);
+      
+      // Special handling for table elements
+      if (actualElement.type === 'table' && expectedElement.type === 'table') {
+        // Check caption if it exists in expected
+        if ('caption' in expectedElement) {
+          expect('caption' in actualElement).toBe(true);
+          expect(actualElement.caption).toBe(expectedElement.caption);
+        } else {
+          expect('caption' in actualElement).toBe(false);
+        }
+        
+        // Check rows and cells structure
+        expect(Array.isArray(actualElement.rows)).toBe(true);
+        expect(actualElement.rows.length).toBe(expectedElement.rows.length);
+        
+        // Check each row and its cells
+        actualElement.rows.forEach((actualRow, rowIndex) => {
+          const expectedRow = expectedElement.rows[rowIndex];
+          
+          expect(Array.isArray(actualRow.cells)).toBe(true);
+          expect(actualRow.cells.length).toBe(expectedRow.cells.length);
+          
+          // Check each cell's properties
+          actualRow.cells.forEach((actualCell, cellIndex) => {
+            const expectedCell = expectedRow.cells[cellIndex];
+            
+            // Compare cell content with normalized whitespace
+            expect(normalizeWhitespace(actualCell.content)).toBe(
+              normalizeWhitespace(expectedCell.content)
+            );
+            
+            // Check other cell properties
+            expect(actualCell.isHeader).toBe(expectedCell.isHeader);
+            expect(actualCell.colspan).toBe(expectedCell.colspan);
+            expect(actualCell.rowspan).toBe(expectedCell.rowspan);
+          });
+        });
+      }
+    });
+  });
+
+  /**
+   * This test checks the extraction of the specific table example from the feature request.
+   * The test verifies the exact structure and content of a specific table format provided
+   * in the example.
+   */
+  it('should extract the specific example table correctly', () => {
+    // Load the HTML input from the test data file
+    const htmlInput = fs.readFileSync(
+      path.resolve(__dirname, '__testdata__/example_table_input.html'),
+      'utf-8',
+    );
+    
+    // Setup test DOM using the HTML input
+    document.body.innerHTML = htmlInput;
+    // Get the chapter div which contains all the content elements to be extracted
+    const chapterDiv = document.querySelector('.chapter') as HTMLElement;
+    
+    // Load the expected output
+    const expectedJson = fs.readFileSync(
+      path.resolve(__dirname, '__testdata__/example_table_expected.json'),
+      'utf-8',
+    );
+    const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
+    
+    // Extract content using the BookChapterExtractor
+    const result = BookChapterExtractor.extract(chapterDiv);
+
+    console.log('Example table test - Expected elements:', JSON.stringify(expectedElements, null, 2));
+    console.log('Example table test - Actual elements:', JSON.stringify(result, null, 2));
+
+    // We expect a single table element
+    expect(result.length).toBe(1);
+    expect(result[0].type).toBe('table');
+    
+    const tableElement = result[0] as { 
+      type: 'table'; 
+      rows: { cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[] }[];
+    };
+    
+    // Check table structure
+    expect(tableElement.rows.length).toBe(2);
+    
+    // Check first row
+    expect(tableElement.rows[0].cells.length).toBe(2);
+    expect(normalizeWhitespace(tableElement.rows[0].cells[0].content)).toBe('Transmission');
+    expect(tableElement.rows[0].cells[0].isHeader).toBe(false);
+    expect(normalizeWhitespace(tableElement.rows[0].cells[1].content)).toContain('The captured data is transferred');
+    
+    // Check second row
+    expect(tableElement.rows[1].cells.length).toBe(2);
+    expect(normalizeWhitespace(tableElement.rows[1].cells[0].content)).toBe('Transcription');
+    expect(tableElement.rows[1].cells[0].isHeader).toBe(false);
+    expect(normalizeWhitespace(tableElement.rows[1].cells[1].content)).toContain('The captured data is converted');
+  });
 });

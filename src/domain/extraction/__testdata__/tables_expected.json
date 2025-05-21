@@ -1,0 +1,197 @@
+[
+  {
+    "type": "heading",
+    "level": 2,
+    "text": "Table Examples"
+  },
+  {
+    "type": "paragraph",
+    "text": "This is a paragraph before the table."
+  },
+  {
+    "type": "table",
+    "caption": "Table 1: Sample data with caption",
+    "rows": [
+      {
+        "cells": [
+          {
+            "content": "Header 1",
+            "isHeader": true,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "Header 2",
+            "isHeader": true,
+            "colspan": 1,
+            "rowspan": 1
+          }
+        ]
+      },
+      {
+        "cells": [
+          {
+            "content": "Transmission",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "The captured data is transferred to some location where it is converted into an internal format understandable by the system (transcription). Today, digital solutions tend to achieve the transmission electronically and sometimes the transcription process is performed within the same device as the data capture, thus not requiring transmission, other than some internal data transfer within the device.",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          }
+        ]
+      },
+      {
+        "cells": [
+          {
+            "content": "Transcription",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "The captured data is converted (transcribed) into a computer-readable format. Historically this would have been achieved by a data entry operator 'keying' the data using a keyboard, but, again, modern digital solutions have a number of options available, discussed later.",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "paragraph",
+    "text": "This is a paragraph after the first table."
+  },
+  {
+    "type": "table",
+    "rows": [
+      {
+        "cells": [
+          {
+            "content": "Combined Header",
+            "isHeader": true,
+            "colspan": 2,
+            "rowspan": 1
+          },
+          {
+            "content": "Header 3",
+            "isHeader": true,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "Header 4",
+            "isHeader": true,
+            "colspan": 1,
+            "rowspan": 1
+          }
+        ]
+      },
+      {
+        "cells": [
+          {
+            "content": "Cell spanning two rows",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 2
+          },
+          {
+            "content": "Regular cell",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "Regular cell",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "Regular cell",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          }
+        ]
+      },
+      {
+        "cells": [
+          {
+            "content": "Row 2 cell",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "Cell spanning two columns",
+            "isHeader": false,
+            "colspan": 2,
+            "rowspan": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "paragraph",
+    "text": "This is a paragraph after the second table."
+  },
+  {
+    "type": "table",
+    "rows": [
+      {
+        "cells": [
+          {
+            "content": "Cell with content",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "Another cell",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          }
+        ]
+      },
+      {
+        "cells": [
+          {
+            "content": "More content",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "Middle cell",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "paragraph",
+    "text": "This is the final paragraph."
+  }
+]

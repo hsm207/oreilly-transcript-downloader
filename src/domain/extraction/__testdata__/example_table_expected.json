@@ -1,0 +1,39 @@
+[
+  {
+    "type": "table",
+    "rows": [
+      {
+        "cells": [
+          {
+            "content": "Transmission",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "The captured data is transferred to some location where it is converted into an internal format understandable by the system (transcription). Today, digital solutions tend to achieve the transmission electronically and sometimes the transcription process is performed within the same device as the data capture, thus not requiring transmission, other than some internal data transfer within the device.",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          }
+        ]
+      },
+      {
+        "cells": [
+          {
+            "content": "Transcription",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          },
+          {
+            "content": "The captured data is converted (transcribed) into a computer-readable format. Historically this would have been achieved by a data entry operator 'keying' the data using a keyboard, but, again, modern digital solutions have a number of options available, discussed later.",
+            "isHeader": false,
+            "colspan": 1,
+            "rowspan": 1
+          }
+        ]
+      }
+    ]
+  }
+]
