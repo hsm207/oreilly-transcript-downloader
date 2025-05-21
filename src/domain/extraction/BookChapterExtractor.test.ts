@@ -36,6 +36,63 @@ describe('BookChapterExtractor', () => {
     root.id = 'book-content';
   });
 
+  /**
+   * This test verifies that the BookChapterExtractor correctly processes diverse elements 
+   * from a book chapter in the exact order they appear in the DOM.
+   * 
+   * The test verifies extraction of:
+   * - Multiple headings at different positions
+   * - Chapter opener text with special formatting
+   * - Regular paragraphs with standard text
+   * - Paragraphs with italic text spans
+   * 
+   * The expected order must match the exact DOM structure order as defined in the expected.json file.
+   */
+  it('should process diverse elements in DOM order', () => {
+    // Load the HTML input from the test data file - this contains a sample chapter with
+    // headings, paragraphs, and special formatting elements like italic text
+    const htmlInput = fs.readFileSync(
+      path.resolve(__dirname, '__testdata__/diverse_elements_input.html'),
+      'utf-8',
+    );
+    
+    // Setup test DOM using the HTML input
+    document.body.innerHTML = htmlInput;
+    // Get the chapter div which contains all the content elements to be extracted
+    const chapterDiv = document.querySelector('.chapter') as HTMLElement;
+    
+    // Load the expected output - an array of BookChapterElement objects
+    // representing the extracted content in the order it should appear
+    const expectedJson = fs.readFileSync(
+      path.resolve(__dirname, '__testdata__/diverse_elements_expected.json'),
+      'utf-8',
+    );
+    const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
+    
+    // Extract content using the BookChapterExtractor
+    const result = BookChapterExtractor.extract(chapterDiv);
+
+    expect(result.length).toBe(expectedElements.length);
+    result.forEach((actualElement, index) => {
+      const expectedElement = expectedElements[index];
+      expect(actualElement.type).toBe(expectedElement.type);
+      
+      if (actualElement.type === 'paragraph' && expectedElement.type === 'paragraph') {
+        expect(normalizeWhitespace(actualElement.text)).toBe(
+          normalizeWhitespace(expectedElement.text)
+        );
+        expect(actualElement.isChapterOpener).toBe(expectedElement.isChapterOpener);
+      } else if (actualElement.type === 'heading' && expectedElement.type === 'heading') {
+        expect(actualElement.level).toBe(expectedElement.level);
+        expect(normalizeWhitespace(actualElement.text)).toBe(
+          normalizeWhitespace(expectedElement.text)
+        );
+      } else {
+        expect(actualElement).toEqual(expectedElement);
+      }
+    });
+  });
+
   it('should extract chapterOpenerText correctly', () => {
     const chapterDiv = document.createElement('div');
     chapterDiv.className = 'chapter';
