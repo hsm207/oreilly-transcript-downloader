@@ -1,5 +1,3 @@
-import { TextNormalizer } from './TextNormalizer';
-
 import { describe, it, expect } from 'vitest';
 import { TextNormalizer } from './TextNormalizer';
 
