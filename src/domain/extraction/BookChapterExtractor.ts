@@ -129,6 +129,46 @@ export class BookChapterExtractor {
         }
       });
     }
+    
+    // Process lists within the node
+    const lists = node.querySelectorAll('ul, ol');
+    lists.forEach((list) => {
+      const isOrdered = list.tagName.toLowerCase() === 'ol';
+      const listItems = Array.from(list.querySelectorAll('li'));
+      
+      if (listItems.length > 0) {
+        const items = listItems.map(li => {
+          // Clone the li to avoid modifying the original
+          const clonedLi = li.cloneNode(true) as HTMLElement;
+          
+          // Remove all footnote references completely
+          clonedLi.querySelectorAll('a[id^="ft_"]').forEach(a => a.remove());
+          
+          // Remove all links that contain superscripts (footnote references)
+          clonedLi.querySelectorAll('a').forEach(a => {
+            if (a.querySelector('sup')) {
+              a.remove();
+            }
+          });
+          
+          // Remove any remaining superscripts
+          clonedLi.querySelectorAll('sup').forEach(sup => sup.remove());
+          
+          // Remove any other footnote links
+          clonedLi.querySelectorAll('a[href^="#footnote"]').forEach(a => a.remove());
+          
+          return this.normalizeText(clonedLi.textContent || '');
+        }).filter(text => text.length > 0);
+        
+        elements.push({
+          type: 'list',
+          items,
+          ordered: isOrdered
+        });
+        
+        PersistentLogger.debug?.(`Extracted ${isOrdered ? 'ordered' : 'unordered'} list with ${items.length} items`);
+      }
+    });
 
     return elements;
   }
@@ -157,6 +197,45 @@ export class BookChapterExtractor {
               text: this.normalizeText(text) 
             });
             PersistentLogger.debug?.(`Extracted body heading: ${text}`);
+          }
+          continue;
+        }
+
+        // Process lists (ordered and unordered)
+        if (el.tagName.toLowerCase() === 'ul' || el.tagName.toLowerCase() === 'ol') {
+          const isOrdered = el.tagName.toLowerCase() === 'ol';
+          const listItems = Array.from(el.querySelectorAll('li'));
+          
+          if (listItems.length > 0) {
+            const items = listItems.map(li => {
+              // Clone the li to avoid modifying the original
+              const clonedLi = li.cloneNode(true) as HTMLElement;
+                   // Remove all footnote references completely
+          clonedLi.querySelectorAll('a[id^="ft_"]').forEach(a => a.remove());
+          
+          // Remove all links that contain superscripts (footnote references)
+          clonedLi.querySelectorAll('a').forEach(a => {
+            if (a.querySelector('sup')) {
+              a.remove();
+            }
+          });
+          
+          // Remove any remaining superscripts
+          clonedLi.querySelectorAll('sup').forEach(sup => sup.remove());
+          
+          // Remove any other footnote links
+          clonedLi.querySelectorAll('a[href^="#footnote"]').forEach(a => a.remove());
+              
+              return this.normalizeText(clonedLi.textContent || '');
+            }).filter(text => text.length > 0);
+            
+            elements.push({
+              type: 'list',
+              items,
+              ordered: isOrdered
+            });
+            
+            PersistentLogger.debug?.(`Extracted ${isOrdered ? 'ordered' : 'unordered'} list with ${items.length} items`);
           }
           continue;
         }

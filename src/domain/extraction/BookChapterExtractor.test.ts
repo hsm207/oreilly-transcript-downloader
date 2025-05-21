@@ -245,4 +245,65 @@ describe('BookChapterExtractor', () => {
       }
     });
   });
+
+  /**
+   * Tests the extraction of ordered and unordered lists from book chapters.
+   * Verifies that the extractor properly processes:
+   * - Unordered lists (<ul>) with list items
+   * - Ordered lists (<ol>) with list items
+   * - Proper footnote removal from list items
+   * - Proper structure of the resulting BookChapterElement with type: 'list'
+   */
+  it('should properly extract ordered and unordered lists', () => {
+    // Load the test HTML
+    const htmlInput = fs.readFileSync(
+      path.resolve(__dirname, '__testdata__/list_elements_input.html'),
+      'utf-8',
+    );
+    
+    // Setup test DOM using the HTML input
+    document.body.innerHTML = htmlInput;
+    // Get the chapter div which contains all the content elements to be extracted
+    const chapterDiv = document.querySelector('.chapter') as HTMLElement;
+    
+    // Load the expected output - an array of BookChapterElement objects
+    const expectedJson = fs.readFileSync(
+      path.resolve(__dirname, '__testdata__/list_elements_expected.json'),
+      'utf-8',
+    );
+    const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
+    
+    // Extract content using the BookChapterExtractor
+    const result = BookChapterExtractor.extract(chapterDiv);
+
+    // Compare the results
+    expect(result.length).toBe(expectedElements.length);
+    result.forEach((actualElement, index) => {
+      const expectedElement = expectedElements[index];
+      expect(actualElement.type).toBe(expectedElement.type);
+      
+      if (actualElement.type === 'list' && expectedElement.type === 'list') {
+        expect(actualElement.ordered).toBe(expectedElement.ordered);
+        expect(actualElement.items.length).toBe(expectedElement.items.length);
+        
+        // Compare each list item
+        actualElement.items.forEach((item, itemIndex) => {
+          expect(normalizeWhitespace(item)).toBe(
+            normalizeWhitespace(expectedElement.items[itemIndex])
+          );
+        });
+      } else if (actualElement.type === 'paragraph' && expectedElement.type === 'paragraph') {
+        expect(normalizeWhitespace(actualElement.text)).toBe(
+          normalizeWhitespace(expectedElement.text)
+        );
+      } else if (actualElement.type === 'heading' && expectedElement.type === 'heading') {
+        expect(actualElement.level).toBe(expectedElement.level);
+        expect(normalizeWhitespace(actualElement.text)).toBe(
+          normalizeWhitespace(expectedElement.text)
+        );
+      } else {
+        expect(actualElement).toEqual(expectedElement);
+      }
+    });
+  });
 });

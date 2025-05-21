@@ -1,0 +1,40 @@
+[
+  {
+    "type": "heading",
+    "level": 2,
+    "text": "Chapter 8"
+  },
+  {
+    "type": "heading",
+    "level": 3,
+    "text": "Investment Lists"
+  },
+  {
+    "type": "paragraph",
+    "text": "Consider these questions before investing:"
+  },
+  {
+    "type": "list",
+    "items": [
+      "How much experience do I have? What is my track record with similar decisions in the past?",
+      "What is the typical track record of other people who have tried this in the past?",
+      "If I am buying, someone else is selling. How likely is it that I know something that this other person (or company) does not know?",
+      "If I am selling, someone else is buying. How likely is it that I know something that this other person (or company) does not know?",
+      "Have I calculated how much this investment needs to go up for me to break even after my taxes and costs of trading?"
+    ],
+    "ordered": false
+  },
+  {
+    "type": "paragraph",
+    "text": "Here are some additional steps to follow in order:"
+  },
+  {
+    "type": "list",
+    "items": [
+      "Research the company thoroughly",
+      "Check financial statements",
+      "Consult with advisors"
+    ],
+    "ordered": true
+  }
+]
