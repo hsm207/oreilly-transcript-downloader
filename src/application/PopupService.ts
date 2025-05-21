@@ -1,3 +1,21 @@
+/**
+ * Sends a message to the content script of the active tab to initiate chapter PDF download.
+ */
+export function requestChapterPdfDownload(): void {
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+      const tabId = tabs[0]?.id;
+      if (tabId) {
+        chrome.tabs.sendMessage(tabId, { action: 'DOWNLOAD_CHAPTER_PDF' });
+        console.log('DOWNLOAD_CHAPTER_PDF message sent to tab:', tabId);
+      } else {
+        console.warn('No active tab found to send DOWNLOAD_CHAPTER_PDF message.');
+      }
+    });
+  } else {
+    console.warn('chrome.tabs API not available for sending message.');
+  }
+}
 // Application: PopupService
 // Service for handling popup-related application logic.
 
