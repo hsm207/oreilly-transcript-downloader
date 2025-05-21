@@ -1,307 +1,278 @@
 /**
  * BookChapterExtractor extracts content (text, images, captions) from the O'Reilly book chapters.
- * Traverses the DOM top-to-bottom, preserving the exact sequence of elements as they appear.
- * The extractor carefully handles O'Reilly-specific DOM structures, special formatting, and nested elements.
+ * Traverses the DOM top-to-bottom using a recursive approach, preserving the exact sequence of elements as they appear.
+ * The extractor identifies content based on semantic HTML tags and attributes, rather than fixed class names.
  */
-import { PersistentLogger } from '../../infrastructure/logging/PersistentLogger';
 import { BookChapterElement } from '../models/BookChapterElement';
+import { PersistentLogger } from '../../infrastructure/logging/PersistentLogger';
 
 export class BookChapterExtractor {
   /**
-   * Normalizes text by replacing curly quotes with straight quotes for consistent output.
+   * Normalizes text by replacing curly quotes with straight quotes for consistent output,
+   * normalizing whitespace, and trimming.
    * @param text The input text to normalize
-   * @returns Normalized text with standardized quotes
+   * @returns Normalized text with standardized quotes and whitespace.
    */
   private static normalizeText(text: string): string {
     return text
-      .replace(/[""]/g, '"')  // Convert all curly quotes to straight quotes
-      .replace(/['']/g, "'")  // Convert all curly apostrophes to straight apostrophes
-      .replace(/\s+/g, ' ')   // Normalize whitespace
+      .replace(/[“”]/g, '"') // Convert curly double quotes to straight quotes
+      .replace(/[‘’]/g, "'") // Convert curly single quotes/apostrophes to straight apostrophes
+      .replace(/\s+/g, " ") // Normalize whitespace (replace multiple spaces/newlines with single space)
       .trim();
   }
 
   /**
+   * Cleans the text content of an HTML element by removing footnotes and then normalizing it.
+   * @param element The HTML element from which to extract and clean text.
+   * @returns Cleaned and normalized text content.
+   */
+  private static cleanNodeText(element: HTMLElement): string {
+    const clonedElement = element.cloneNode(true) as HTMLElement;
+
+    // Remove <sup> elements, commonly used for footnote markers.
+    clonedElement.querySelectorAll("sup").forEach((sup) => sup.remove());
+
+    // Remove <a> tags that are likely footnote links or empty anchors for footnotes.
+    clonedElement.querySelectorAll("a").forEach((a) => {
+      const href = a.getAttribute("href");
+      const id = a.getAttribute("id");
+      // Check for typical footnote link patterns or empty anchors used by O'Reilly
+      if (
+        (href &&
+          (href.includes("Footnote.xhtml") ||
+            href.startsWith("#ft_") ||
+            href.startsWith("#footnote"))) ||
+        (id && (id.startsWith("uft_re") || id.startsWith("ft_re")) && !a.textContent?.trim())
+      ) {
+        a.remove();
+      }
+    });
+
+    let text = clonedElement.textContent || "";
+    return BookChapterExtractor.normalizeText(text);
+  }
+
+  /**
+   * Recursively processes a DOM node and its children to extract BookChapterElements.
+   * @param node The DOM node to process.
+   * @param elements An array where extracted BookChapterElement objects are collected.
+   */
+  private static processNode(node: Node, elements: BookChapterElement[]): void {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const htmlElement = node as HTMLElement;
+      const tagName = htmlElement.tagName.toLowerCase();
+      const classList = htmlElement.classList;
+      
+      PersistentLogger.debug?.(
+        `Processing element: ${tagName}${htmlElement.id ? '#' + htmlElement.id : ''}${
+          classList && classList.length ? '.' + Array.from(classList).join('.') : ''
+        }`
+      );
+
+      // Skip script, style, and other non-content elements
+      if (
+        [
+          "script",
+          "style",
+          "meta",
+          "link",
+          "head",
+          "iframe",
+          "noscript",
+          "template",
+          "nav", // Navigation elements are usually not part of main content
+        ].includes(tagName)
+      ) {
+        PersistentLogger.debug?.(`Skipping non-content element: ${tagName}`);
+        return;
+      }
+
+      // Headings (h1-h6)
+      if (tagName.match(/^h[1-6]$/)) {
+        const level = parseInt(tagName.substring(1), 10);
+        
+        // Special handling for complex chapter headers with line breaks and quotes
+        let text = '';
+        if (htmlElement.querySelector('.chapterNumber, .chapterTitle')) {
+          // If there's a span for chapter number/title inside, let's combine them with proper spacing
+          const parts: string[] = [];
+          htmlElement.childNodes.forEach(child => {
+            if (child.nodeType === Node.ELEMENT_NODE) {
+              const childText = BookChapterExtractor.cleanNodeText(child as HTMLElement);
+              if (childText) parts.push(childText);
+            } else if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
+              parts.push(child.textContent.trim());
+            }
+          });
+          text = parts.join(' ');
+        } else {
+          // Standard heading - just clean the text
+          text = BookChapterExtractor.cleanNodeText(htmlElement);
+        }
+        
+        if (text) {
+          PersistentLogger.debug?.(`Adding heading level ${level}: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
+          elements.push({ type: "heading", level, text });
+        }
+        return; // Processed this node, don't recurse its children for more elements from this heading
+      }
+
+      // Paragraphs (p) and figcaptions
+      if (tagName === "p" || tagName === "figcaption") {
+        // Check if paragraph contains an image
+        const imgElements = htmlElement.querySelectorAll('img');
+        if (imgElements.length > 0) {
+          // Process each image first before processing paragraph text
+          for (const imgElem of Array.from(imgElements)) {
+            const src = imgElem.getAttribute("src") || "";
+            const alt = imgElem.getAttribute("alt") || "";
+            if (src) {
+              PersistentLogger.debug?.(`Adding image from paragraph: src="${src}", alt="${alt}"`);
+              elements.push({ type: "image", src, alt });
+            }
+          }
+        }
+        
+        // Check for non-breaking space paragraphs first - these need special handling
+        // We need to check the original HTML content, not the cleaned text
+        if (htmlElement.innerHTML === '&nbsp;' || htmlElement.innerHTML.trim() === '\u00A0') {
+          PersistentLogger.debug?.(`Adding non-breaking space paragraph`);
+          elements.push({ type: "paragraph", text: "\u00A0" });
+        } else {
+          // Process normal paragraph text
+          const text = BookChapterExtractor.cleanNodeText(htmlElement);
+          if (text) {
+            // Detect special paragraph types
+            const isChapterOpener = classList.contains("chapterOpenerText");
+            const isEpigraphText = classList.contains("chapterEpigraphText");
+            const isEpigraphSource = classList.contains("chapterEpigraphSource");
+            
+            // Handle different paragraph types
+            if (classList.contains("caption") || tagName === "figcaption") {
+              PersistentLogger.debug?.(`Adding caption: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
+              elements.push({ type: "caption", text });
+            } else if (isEpigraphText || isEpigraphSource) {
+              // Epigraphs are treated as regular paragraphs in the expected output
+              PersistentLogger.debug?.(`Adding epigraph: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
+              elements.push({ type: "paragraph", text });
+            } else {
+              PersistentLogger.debug?.(`Adding paragraph: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
+              // Only include isChapterOpener if it's true, to match the expected structure in the test
+              if (isChapterOpener) {
+                elements.push({ type: "paragraph", text, isChapterOpener });
+              } else {
+                elements.push({ type: "paragraph", text });
+              }
+            }
+          }
+        }
+        return; // Processed
+      }
+
+      // Lists (ul, ol)
+      if (tagName === "ul" || tagName === "ol") {
+        const items: string[] = [];
+        // Iterate over direct children <li> elements
+        for (const childNode of Array.from(htmlElement.childNodes)) {
+          if (childNode.nodeType === Node.ELEMENT_NODE && (childNode as HTMLElement).tagName.toLowerCase() === "li") {
+            const itemText = BookChapterExtractor.cleanNodeText(childNode as HTMLElement);
+            if (itemText) {
+              items.push(itemText);
+            }
+          }
+        }
+        if (items.length > 0) {
+          elements.push({ type: "list", items, ordered: tagName === "ol" });
+        }
+        return; // Processed
+      }
+
+      // Images (img)
+      if (tagName === "img") {
+        const src = htmlElement.getAttribute("src") || "";
+        const alt = htmlElement.getAttribute("alt") || "";
+        // Only add if there's a src, as per original logic for TranscriptLine images
+        if (src) {
+          PersistentLogger.debug?.(`Adding image: src="${src}", alt="${alt}"`);
+          elements.push({ type: "image", src, alt });
+        } else {
+          PersistentLogger.debug?.(`Skipping image with empty src`);
+        }
+        return; // Processed
+      }
+
+      // Cite elements (often part of blockquotes or for attributions)
+      if (tagName === "cite") {
+        const text = BookChapterExtractor.cleanNodeText(htmlElement);
+        if (text) {
+          // Represent cite content as a paragraph
+          elements.push({ type: "paragraph", text });
+        }
+        return; // Processed
+      }
+      
+      // Blockquotes, Figures, Divs, Sections, Articles, Main, Body, Header, Footer, Aside etc.
+      // These are container elements, or elements whose children should be processed.
+      
+      // These content elements are already handled above with specific logic
+      // No need to process them again - just for documentation
+      
+      // Define container elements - these are elements that typically just wrap other content
+      const containerElements = ["blockquote", "figure", "div", "section", "article", "main", "body", "header", "footer", "aside"];
+      
+      // Special containers that we always want to process regardless of tag name
+      const isSpecialContainer = 
+        htmlElement.id === "book-content" || 
+        htmlElement.id === "sbo-rt-content" || 
+        classList.contains("chapter") || 
+        classList.contains("chapterBody") || 
+        classList.contains("chapterHead");
+      
+      // Only process children if this is a container element or special container
+      // This avoids duplicate processing of content
+      if (containerElements.includes(tagName) || isSpecialContainer) {
+        PersistentLogger.debug?.(`Processing children of container: ${tagName}`);
+        for (const child of Array.from(htmlElement.childNodes)) {
+          BookChapterExtractor.processNode(child, elements);
+        }
+      }
+      
+      // We've handled either:
+      // 1. A content element directly (h1-6, p, ul, ol, img, cite) - returned early above
+      // 2. A container element (div, section, etc.) and processed its children
+      // No need for additional fallthrough processing
+
+    } else if (node.nodeType === Node.TEXT_NODE) {
+      // We generally expect meaningful text to be wrapped in block elements (p, h1, li, etc.).
+      // cleanNodeText on those parent elements will capture their full text content, including direct text nodes.
+      // Processing loose text nodes here might lead to fragmented or unintended "paragraph" elements
+      // if they are just whitespace between block elements or insignificant text.
+      // Example: <div> <p>Text</p> <!-- loose whitespace text node --> <p>More Text</p> </div>
+      // If specific tests show missing text that exists as direct children of major containers and
+      // not within standard block elements, this part might need careful adjustment.
+      // For now, rely on text extraction from recognized block/content elements.
+    }
+  }
+
+  /**
    * Extracts ordered content from the O'Reilly book chapter DOM structure.
-   * @param root The root HTML element (should be #book-content or a .chapter div).
+   * @param root The root HTML element (e.g., #book-content, #sbo-rt-content, or a .chapter div).
    * @returns An array of BookChapterElement in DOM order.
    */
   public static extract(root: HTMLElement): BookChapterElement[] {
     const elements: BookChapterElement[] = [];
-    PersistentLogger.info?.('Starting extraction from element');
-
-    const chapters =
-      root.id === 'book-content' || root.id === 'sbo-rt-content'
-        ? Array.from(root.querySelectorAll('.chapter'))
-        : [root];
-
-    for (const chapter of chapters) {
-      // Process chapter head content
-      const chapterHead = chapter.querySelector('.chapterHead');
-      const elementsFromHead: BookChapterElement[] = [];
-      
-      if (chapterHead) {
-        // Extract headings and epigraphs from chapterHead
-        const headElements = this.extractElementsFromNode(chapterHead as HTMLElement);
-        elementsFromHead.push(...headElements);
-      }
-
-      // Process chapter body content
-      const chapterBody = chapter.querySelector('.chapterBody');
-      const elementsFromBody: BookChapterElement[] = [];
-      
-      if (chapterBody) {
-        // Process all child nodes in DOM order
-        const bodyElements = this.processChapterBodyElements(chapterBody as HTMLElement);
-        elementsFromBody.push(...bodyElements);
-      } else {
-        PersistentLogger.debug?.('No .chapterBody found in chapter');
-      }
-
-      // Add all elements in the correct order
-      elements.push(...elementsFromHead, ...elementsFromBody);
-    }
-
-    PersistentLogger.info?.(`Extraction complete. Elements: ${elements.length}`);
-    return elements;
-  }
-
-  /**
-   * Extracts elements from the chapter head node in DOM order.
-   * @param chapterHead The chapter head element
-   * @returns Array of BookChapterElement in DOM order
-   */
-  private static extractElementsFromNode(node: HTMLElement): BookChapterElement[] {
-    const elements: BookChapterElement[] = [];
-    
-    // Process headings
-    const hTags = node.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    hTags.forEach((h) => {
-      const level = parseInt(h.tagName[1]);
-      let text = '';
-      // Handle cases where chapter title and number might be in separate spans or need combining
-      const chapterTitleSpan = h.querySelector('.chapterTitle');
-
-      if (h.classList.contains('chapterNumber') && h.querySelector('.italic')) {
-        // Case: <h2 class="chapterNumber"><a href>Chapter X<br><span class="italic">Title</span></a></h2>
-        // Don't convert \n to spaces - keep newlines to match expected format
-        const aNode = h.querySelector('a');
-        if (aNode) {
-          text = Array.from(aNode.childNodes)
-            .map((node) => node.textContent?.trim())
-            .filter(Boolean)
-            .join('\n'); // Keep newlines as they are in the expected output
-        } else {
-          // Fallback if <a> is not present for some reason
-          text = Array.from(h.childNodes)
-            .map((node) => node.textContent?.trim())
-            .filter(Boolean)
-            .join('\n'); // Keep newlines as they are in the expected output
-        }
-      } else if (chapterTitleSpan) {
-        // Case: <h2 class="chapterTitle"><a>Title</a></h2>
-        text = chapterTitleSpan.textContent?.trim().replace(/\s+/g, ' ') || '';
-      } else if (h.classList.contains('chapterNumber')) {
-        // Case: <h2 class="chapterNumber">Chapter X</h2> (without italic title part)
-        text = h.textContent?.trim().replace(/\s+/g, ' ') || '';
-      } else {
-        text = h.textContent?.trim().replace(/\s+/g, ' ') || '';
-      }
-
-      if (text) {
-        // Normalize quotes before adding to elements
-        elements.push({ type: 'heading', level, text: this.normalizeText(text) });
-        PersistentLogger.debug?.(`Extracted heading: ${text}`);
-      }
-    });
-
-    // Process epigraphs
-    const epigraph = node.querySelector('.chapterEpigraph');
-    if (epigraph) {
-      const epigraphTexts = epigraph.querySelectorAll(
-        '.chapterEpigraphText, .chapterEpigraphSource'
-      );
-      epigraphTexts.forEach((epigraphTextElement) => {
-        const text = epigraphTextElement.textContent?.trim() || '';
-        if (text) {
-          // Normalize quotes before adding to elements
-          elements.push({ type: 'paragraph', text: this.normalizeText(text) }); // Treat epigraph lines as paragraphs
-          PersistentLogger.debug?.(`Extracted epigraph text: ${text}`);
-        }
-      });
+    if (!root || typeof root.querySelectorAll !== 'function') {
+      PersistentLogger.warn?.("BookChapterExtractor.extract called with invalid root element.");
+      return elements;
     }
     
-    // Process lists within the node
-    const lists = node.querySelectorAll('ul, ol');
-    lists.forEach((list) => {
-      const isOrdered = list.tagName.toLowerCase() === 'ol';
-      const listItems = Array.from(list.querySelectorAll('li'));
-      
-      if (listItems.length > 0) {
-        const items = listItems.map(li => {
-          // Clone the li to avoid modifying the original
-          const clonedLi = li.cloneNode(true) as HTMLElement;
-          
-          // Remove all footnote references completely
-          clonedLi.querySelectorAll('a[id^="ft_"]').forEach(a => a.remove());
-          
-          // Remove all links that contain superscripts (footnote references)
-          clonedLi.querySelectorAll('a').forEach(a => {
-            if (a.querySelector('sup')) {
-              a.remove();
-            }
-          });
-          
-          // Remove any remaining superscripts
-          clonedLi.querySelectorAll('sup').forEach(sup => sup.remove());
-          
-          // Remove any other footnote links
-          clonedLi.querySelectorAll('a[href^="#footnote"]').forEach(a => a.remove());
-          
-          return this.normalizeText(clonedLi.textContent || '');
-        }).filter(text => text.length > 0);
-        
-        elements.push({
-          type: 'list',
-          items,
-          ordered: isOrdered
-        });
-        
-        PersistentLogger.debug?.(`Extracted ${isOrdered ? 'ordered' : 'unordered'} list with ${items.length} items`);
-      }
-    });
+    PersistentLogger.info?.(
+      `Starting extraction from root element: ${root.tagName}${root.id ? '#' + root.id : ''}${root.className ? '.' + root.className.replace(' ','.') : ''}`
+    );
 
-    return elements;
-  }
+    BookChapterExtractor.processNode(root, elements);
 
-  /**
-   * Processes chapter body elements in DOM order.
-   * @param chapterBody The chapter body element
-   * @returns Array of BookChapterElement in DOM order
-   */
-  private static processChapterBodyElements(chapterBody: HTMLElement): BookChapterElement[] {
-    const elements: BookChapterElement[] = [];
-    const childNodes = Array.from(chapterBody.childNodes);
-
-    for (const node of childNodes) {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const el = node as HTMLElement;
-        
-        // Process headings directly in DOM order
-        if (el.tagName.toLowerCase().match(/^h[1-6]$/)) {
-          const level = parseInt(el.tagName[1]);
-          const text = el.textContent?.trim() || '';
-          if (text) {
-            elements.push({ 
-              type: 'heading', 
-              level, 
-              text: this.normalizeText(text) 
-            });
-            PersistentLogger.debug?.(`Extracted body heading: ${text}`);
-          }
-          continue;
-        }
-
-        // Process lists (ordered and unordered)
-        if (el.tagName.toLowerCase() === 'ul' || el.tagName.toLowerCase() === 'ol') {
-          const isOrdered = el.tagName.toLowerCase() === 'ol';
-          const listItems = Array.from(el.querySelectorAll('li'));
-          
-          if (listItems.length > 0) {
-            const items = listItems.map(li => {
-              // Clone the li to avoid modifying the original
-              const clonedLi = li.cloneNode(true) as HTMLElement;
-                   // Remove all footnote references completely
-          clonedLi.querySelectorAll('a[id^="ft_"]').forEach(a => a.remove());
-          
-          // Remove all links that contain superscripts (footnote references)
-          clonedLi.querySelectorAll('a').forEach(a => {
-            if (a.querySelector('sup')) {
-              a.remove();
-            }
-          });
-          
-          // Remove any remaining superscripts
-          clonedLi.querySelectorAll('sup').forEach(sup => sup.remove());
-          
-          // Remove any other footnote links
-          clonedLi.querySelectorAll('a[href^="#footnote"]').forEach(a => a.remove());
-              
-              return this.normalizeText(clonedLi.textContent || '');
-            }).filter(text => text.length > 0);
-            
-            elements.push({
-              type: 'list',
-              items,
-              ordered: isOrdered
-            });
-            
-            PersistentLogger.debug?.(`Extracted ${isOrdered ? 'ordered' : 'unordered'} list with ${items.length} items`);
-          }
-          continue;
-        }
-
-        // Process paragraphs, images, etc.
-        if (el.tagName.toLowerCase() === 'p') {
-          const p = el;
-          const img = p.querySelector('img');
-          if (img) {
-            elements.push({ type: 'image', src: img.src, alt: img.alt || '' });
-            PersistentLogger.debug?.(`Extracted image: ${img.src}`);
-          } else if (p.classList.contains('caption') || p.classList.contains('fcaption')) {
-            const text = p.textContent?.trim() || '';
-            if (text) {
-              elements.push({ type: 'caption', text: this.normalizeText(text) });
-              PersistentLogger.debug?.(`Extracted caption: ${text}`);
-            }
-          } else {
-            // Remove footnote markers (e.g., <a><sup>*</sup></a>) but keep their text
-            const clonedP = p.cloneNode(true) as HTMLElement;
-            clonedP.querySelectorAll('a > sup').forEach((sup) => {
-              const supText = sup.textContent || '';
-              const parentA = sup.parentElement;
-              if (parentA) {
-                parentA.replaceWith(supText);
-              }
-            });
-
-            let paragraphText = '';
-            const isOpener = p.classList.contains('chapterOpenerText');
-
-            if (isOpener) {
-              const firstLettersSpan = clonedP.querySelector('.chapterOpenerFirstLetters');
-              const firstLetters = firstLettersSpan?.textContent?.trim() || '';
-              if (firstLettersSpan) {
-                firstLettersSpan.remove(); // Remove to avoid duplication
-              }
-              // Preserve spaces between firstLetters and the rest of the text if they exist.
-              const restOfText = clonedP.textContent || '';
-              paragraphText = firstLetters + restOfText.trimStart();
-            } else {
-              paragraphText = clonedP.textContent?.trim() || '';
-            }
-
-            if (paragraphText || p.innerHTML.includes('&nbsp;')) {
-              const finalText =
-                p.innerHTML.includes('&nbsp;') && !paragraphText ? '\u00A0' : paragraphText;
-              
-              // Normalize the text by replacing curly quotes with straight quotes
-              const normalizedText = this.normalizeText(finalText);
-              
-              const elementToAdd: BookChapterElement = {
-                type: 'paragraph',
-                text: normalizedText,
-              };
-              if (isOpener) {
-                elementToAdd.isChapterOpener = true;
-              }
-              elements.push(elementToAdd);
-              PersistentLogger.debug?.(`Extracted paragraph: ${normalizedText}`);
-            }
-          }
-        }
-      }
-    }
-    
+    PersistentLogger.info?.(`Extraction complete. Found ${elements.length} elements.`);
     return elements;
   }
 }
