@@ -16,7 +16,10 @@
  * inconsistently preserved or removed in the extraction process.
  */
 import { BookChapterElement } from '../models/BookChapterElement';
+
 import { PersistentLogger } from '../../infrastructure/logging/PersistentLogger';
+import { TableExtractor } from './components/TableExtractor';
+import { TextNormalizer } from './components/TextNormalizer';
 
 export class BookChapterExtractor {
   // TODO: Improve handling of inline footnote markers (like asterisks) that aren't wrapped in HTML elements
@@ -27,12 +30,11 @@ export class BookChapterExtractor {
    * @param text The input text to normalize
    * @returns Normalized text with standardized quotes and whitespace.
    */
+  /**
+   * @deprecated Use TextNormalizer.normalizeText
+   */
   private static normalizeText(text: string): string {
-    return text
-      .replace(/[“”]/g, '"') // Convert curly double quotes to straight quotes
-      .replace(/[‘’]/g, "'") // Convert curly single quotes/apostrophes to straight apostrophes
-      .replace(/\s+/g, ' ') // Normalize whitespace (replace multiple spaces/newlines with single space)
-      .trim();
+    return TextNormalizer.normalizeText(text);
   }
 
   /**
@@ -40,34 +42,11 @@ export class BookChapterExtractor {
    * @param element The HTML element from which to extract and clean text.
    * @returns Cleaned and normalized text content.
    */
+  /**
+   * @deprecated Use TextNormalizer.cleanNodeText
+   */
   private static cleanNodeText(element: HTMLElement): string {
-    const clonedElement = element.cloneNode(true) as HTMLElement;
-
-    // Remove <sup> elements, commonly used for footnote markers.
-    clonedElement.querySelectorAll('sup').forEach((sup) => sup.remove());
-
-    // Remove <a> tags that are likely footnote links or empty anchors for footnotes.
-    clonedElement.querySelectorAll('a').forEach((a) => {
-      const href = a.getAttribute('href');
-      const id = a.getAttribute('id');
-      // Check for typical footnote link patterns or empty anchors used by O'Reilly
-      if (
-        (href &&
-          (href.includes('Footnote.xhtml') ||
-            href.startsWith('#ft_') ||
-            href.startsWith('#footnote'))) ||
-        (id && (id.startsWith('uft_re') || id.startsWith('ft_re')) && !a.textContent?.trim())
-      ) {
-        a.remove();
-      }
-    });
-
-    // NOTE: Currently, we don't have handling for standalone footnote markers like asterisks (*).
-    // These can appear in the text content but aren't wrapped in HTML elements that we can target.
-    // A future improvement could identify and remove these markers based on context patterns.
-
-    let text = clonedElement.textContent || '';
-    return BookChapterExtractor.normalizeText(text);
+    return TextNormalizer.cleanNodeText(element);
   }
 
   /**
@@ -221,7 +200,7 @@ export class BookChapterExtractor {
         PersistentLogger.debug?.(
           `Found table element: ${tagName}${htmlElement.className ? '.' + htmlElement.className.replace(' ', '.') : ''}`,
         );
-        const tableElement = BookChapterExtractor.processTableElement(htmlElement);
+        const tableElement = TableExtractor.extract(htmlElement);
         elements.push(tableElement);
         return; // Processed
       }
@@ -246,15 +225,6 @@ export class BookChapterExtractor {
         if (text) {
           // Represent cite content as a paragraph
           elements.push({ type: 'paragraph', text });
-        }
-        return; // Processed
-      }
-
-      // Tables (table)
-      if (tagName === 'table') {
-        const tableData = BookChapterExtractor.processTableElement(htmlElement);
-        if (tableData) {
-          elements.push(tableData);
         }
         return; // Processed
       }
@@ -332,95 +302,5 @@ export class BookChapterExtractor {
 
     PersistentLogger.info?.(`Extraction complete. Found ${elements.length} elements.`);
     return elements;
-  }
-
-  /**
-   * Extracts content from table elements, handling captions, headers, and data cells.
-   * @param tableElement The HTML table element to process
-   * @returns A BookChapterElement of type 'table'
-   */
-  private static processTableElement(tableElement: HTMLElement): BookChapterElement {
-    PersistentLogger.debug?.(`Processing table element`);
-
-    // Extract table rows and cells
-    const rows: {
-      cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[];
-    }[] = [];
-
-    // Check for table caption
-    let caption: string | undefined = undefined;
-    const captionElem = tableElement.querySelector('caption');
-    if (captionElem && captionElem.textContent) {
-      caption = BookChapterExtractor.normalizeText(captionElem.textContent);
-      PersistentLogger.debug?.(`Found table caption: "${caption}"`);
-    }
-
-    // Process rows - first handle any rows in <thead> if present
-    const theadElement = tableElement.querySelector('thead');
-    if (theadElement) {
-      const headerRows = theadElement.querySelectorAll('tr');
-      headerRows.forEach((row) => {
-        const rowData = BookChapterExtractor.processTableRow(row, true);
-        if (rowData.cells.length > 0) {
-          rows.push(rowData);
-        }
-      });
-    }
-
-    // Process rows in <tbody>
-    const tbodyElement = tableElement.querySelector('tbody') || tableElement;
-    const bodyRows = tbodyElement.querySelectorAll('tr');
-    bodyRows.forEach((row) => {
-      // Default isHeader to false for tbody rows
-      const rowData = BookChapterExtractor.processTableRow(row, false);
-      if (rowData.cells.length > 0) {
-        rows.push(rowData);
-      }
-    });
-
-    // If we found a caption, include it in the table element
-    if (caption) {
-      PersistentLogger.info?.(`Extracted table with caption and ${rows.length} rows`);
-      return { type: 'table', rows, caption };
-    } else {
-      PersistentLogger.info?.(`Extracted table with ${rows.length} rows`);
-      return { type: 'table', rows };
-    }
-  }
-
-  /**
-   * Process a single table row to extract cell data
-   * @param rowElement The TR element to process
-   * @param isHeaderRow Whether this row is in a thead element
-   * @returns A TableRow object with extracted cells
-   */
-  private static processTableRow(
-    rowElement: HTMLTableRowElement,
-    isHeaderRow: boolean,
-  ): { cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[] } {
-    const cells: { content: string; isHeader: boolean; colspan: number; rowspan: number }[] = [];
-
-    // Process th and td elements
-    const cellElements = rowElement.querySelectorAll('th, td');
-    cellElements.forEach((cellElem) => {
-      // Determine if this is a header cell - either by being a th or inheriting from isHeaderRow
-      const isHeader = cellElem.tagName.toLowerCase() === 'th' || isHeaderRow;
-
-      // Extract colspan and rowspan attributes
-      const colspan = parseInt(cellElem.getAttribute('colspan') || '1', 10);
-      const rowspan = parseInt(cellElem.getAttribute('rowspan') || '1', 10);
-
-      // Extract cell content
-      const content = BookChapterExtractor.cleanNodeText(cellElem as HTMLElement);
-
-      cells.push({
-        content,
-        isHeader,
-        colspan,
-        rowspan,
-      });
-    });
-
-    return { cells };
   }
 }
