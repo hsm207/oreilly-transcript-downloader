@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { AllChapterPdfDownloadService } from "./AllChapterPdfDownloadService";
 import * as waitModule from "../infrastructure/waitForBookContent";
+import * as politeWaitModule from "../infrastructure/politeWait";
 import {
   BookChapterDownloadStateRepository,
   BookChapterDownloadState,
@@ -12,6 +13,7 @@ vi.mock("./BookChapterPdfService"); // Automatically mock all exports
 
 describe("AllChapterPdfDownloadService", () => {
   let waitForBookContentSpy: ReturnType<typeof vi.spyOn>;
+  let politeWaitSpy: ReturnType<typeof vi.spyOn>;
   let service: AllChapterPdfDownloadService;
   let mockTocExtractor: TocExtractor;
   let mockStateRepo: BookChapterDownloadStateRepository;
@@ -25,6 +27,10 @@ describe("AllChapterPdfDownloadService", () => {
     waitForBookContentSpy = vi
       .spyOn(waitModule, "waitForBookContent")
       .mockResolvedValue(document.createElement("div")) as unknown as ReturnType<typeof vi.spyOn>;
+    // Spy on politeWait and resolve immediately for tests
+    politeWaitSpy = vi
+      .spyOn(politeWaitModule, "politeWait")
+      .mockResolvedValue(undefined) as unknown as ReturnType<typeof vi.spyOn>;
     vi.clearAllMocks();
 
     mockTocExtractor = { extractItems: vi.fn() } as unknown as TocExtractor;
@@ -65,6 +71,7 @@ describe("AllChapterPdfDownloadService", () => {
 
   afterEach(() => {
     waitForBookContentSpy.mockRestore();
+    politeWaitSpy.mockRestore();
     // Restore original window.location
     Object.defineProperty(window, "location", {
       value: originalLocation,
@@ -74,7 +81,7 @@ describe("AllChapterPdfDownloadService", () => {
     vi.restoreAllMocks(); // Also good practice to restore all mocks
   });
 
-  it('should start the bulk chapter download process, save initial state, and navigate to first chapter', async () => {
+  it('should start the bulk chapter download process with polite wait, save initial state, and navigate to first chapter', async () => {
     // Arrange: mock TOC extraction and DOM
     const tocItems = [
       { title: 'Chapter 1', href: '/chapter1' },
@@ -97,6 +104,7 @@ describe("AllChapterPdfDownloadService", () => {
       tocItems,
       currentIndex: 0,
     });
+    expect(politeWaitSpy).toHaveBeenCalledWith(1000);
     expect(mockLogger.info).toHaveBeenCalledWith('Bulk chapter download started.');
     expect(mockLogger.info).toHaveBeenCalledWith('Navigating to: http://initial.com/chapter1');
     expect(mockLocation.href).toBe('http://initial.com/chapter1');
@@ -128,7 +136,7 @@ describe("AllChapterPdfDownloadService", () => {
     expect(mockLogger.info).not.toHaveBeenCalled();
   });
 
-  it('should process the current chapter, download PDF, update state, and navigate on resume (happy path, waits for book content)', async () => {
+  it('should process the current chapter, download PDF, update state, wait politely and navigate on resume (happy path)', async () => {
     // Ensure waitForBookContent is called and resolves
     waitForBookContentSpy.mockResolvedValue(document.createElement('div'));
     // Arrange: mock state with a chapter to process
@@ -147,6 +155,7 @@ describe("AllChapterPdfDownloadService", () => {
     // Act
     await service.resumeDownloadIfNeeded();
     expect(waitForBookContentSpy).toHaveBeenCalled();
+    expect(politeWaitSpy).toHaveBeenCalled(); // Default parameter (3000ms)
 
     // Assert
     expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith(
