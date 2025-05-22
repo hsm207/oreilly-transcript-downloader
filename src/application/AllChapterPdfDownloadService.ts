@@ -1,10 +1,10 @@
 import { TocExtractor } from '../domain/extraction/TocExtractor';
 import {
   BookChapterDownloadStateRepository,
-  BookChapterDownloadState,
 } from '../infrastructure/BookChapterDownloadStateRepository';
 import { PersistentLogger } from '../infrastructure/logging/PersistentLogger';
 import { BookChapterPdfService } from './BookChapterPdfService';
+import { waitForBookContent } from '../infrastructure/waitForBookContent';
 
 /**
  * Service to orchestrate downloading all chapters as PDFs for a book.
@@ -59,6 +59,14 @@ export class AllChapterPdfDownloadService {
     const state = this.stateRepo.load();
     if (!state) return;
     await this.logger.info('Resuming bulk chapter download.');
+
+    // Wait for book content to be fully loaded before proceeding
+    try {
+      await waitForBookContent();
+    } catch (err) {
+      await this.logger.error('Book content did not load in time. Aborting chapter download.');
+      return;
+    }
 
     const { tocItems, currentIndex } = state;
     if (!tocItems || tocItems.length === 0 || currentIndex >= tocItems.length) return;
