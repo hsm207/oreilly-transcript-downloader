@@ -1,7 +1,10 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { BookChapterDownloadStateRepository, BookChapterDownloadState } from "./BookChapterDownloadStateRepository";
+import { describe, it, expect, beforeEach } from 'vitest';
+import {
+  BookChapterDownloadStateRepository,
+  BookChapterDownloadState,
+} from './BookChapterDownloadStateRepository';
 
-describe("BookChapterDownloadStateRepository", () => {
+describe('BookChapterDownloadStateRepository', () => {
   let repo: BookChapterDownloadStateRepository;
 
   beforeEach(() => {
@@ -9,11 +12,11 @@ describe("BookChapterDownloadStateRepository", () => {
     localStorage.clear();
   });
 
-  it("saves and loads state correctly", () => {
+  it('saves and loads state correctly', () => {
     const state: BookChapterDownloadState = {
       tocItems: [
-        { title: "Chapter 1", href: "/chapter1" },
-        { title: "Chapter 2", href: "/chapter2" },
+        { title: 'Chapter 1', href: '/chapter1' },
+        { title: 'Chapter 2', href: '/chapter2' },
       ],
       currentIndex: 1,
     };
@@ -22,18 +25,18 @@ describe("BookChapterDownloadStateRepository", () => {
     expect(loaded).toEqual(state);
   });
 
-  it("returns null if state is missing", () => {
+  it('returns null if state is missing', () => {
     expect(repo.load()).toBeNull();
   });
 
-  it("returns null if state is invalid JSON", () => {
-    localStorage.setItem("oreilly_book_chapter_download_state", "{not valid json");
+  it('returns null if state is invalid JSON', () => {
+    localStorage.setItem('oreilly_book_chapter_download_state', '{not valid json');
     expect(repo.load()).toBeNull();
   });
 
-  it("clears the state", () => {
+  it('clears the state', () => {
     const state: BookChapterDownloadState = {
-      tocItems: [{ title: "Chapter 1", href: "/chapter1" }],
+      tocItems: [{ title: 'Chapter 1', href: '/chapter1' }],
       currentIndex: 0,
     };
     repo.save(state);
