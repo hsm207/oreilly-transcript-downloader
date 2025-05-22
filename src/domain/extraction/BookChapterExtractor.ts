@@ -68,8 +68,7 @@ export class BookChapterExtractor {
     }
 
     if (this.processHeading(htmlElement, tagName, elements)) return;
-    if (this.processParagraphOrCaption(htmlElement, tagName, classList, elements))
-      return;
+    if (this.processParagraphOrCaption(htmlElement, tagName, classList, elements)) return;
     if (this.processList(htmlElement, tagName, elements)) return;
     if (this.processTable(htmlElement, tagName, elements)) return;
     if (this.processImage(htmlElement, tagName, elements)) return;

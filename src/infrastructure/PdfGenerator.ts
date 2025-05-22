@@ -14,7 +14,7 @@ export class PdfGenerator {
   static async generateAndDownload(
     elements: BookChapterElement[],
     filename: string,
-    logger: PersistentLogger = PersistentLogger.instance
+    logger: PersistentLogger = PersistentLogger.instance,
   ): Promise<void> {
     try {
       await logger.info(`Generating PDF for ${filename}`);
@@ -221,7 +221,9 @@ export class PdfGenerator {
     pageHeight: number,
     bottomMargin: number,
   ): number {
-    (arguments[6] as PersistentLogger | undefined)?.info?.(`Rendering table with ${table.rows.length} rows`);
+    (arguments[6] as PersistentLogger | undefined)?.info?.(
+      `Rendering table with ${table.rows.length} rows`,
+    );
 
     // Calculate cell dimensions
     const maxCellsInAnyRow = Math.max(

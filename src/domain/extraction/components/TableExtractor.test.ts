@@ -3,7 +3,6 @@ import { PersistentLogger } from '../../../infrastructure/logging/PersistentLogg
 import { describe, it, expect } from 'vitest';
 
 describe('TableExtractor', () => {
-
   function createTable(html: string): HTMLElement {
     const div = document.createElement('div');
     div.innerHTML = html.trim();
@@ -19,7 +18,6 @@ describe('TableExtractor', () => {
     async error(message: string): Promise<void> {}
     async debug(message: string): Promise<void> {}
   }
-
 
   it('extracts a simple table with header and body', () => {
     const table = createTable(`
@@ -45,7 +43,6 @@ describe('TableExtractor', () => {
     expect((result as any).rows[1].cells[0].isHeader).toBe(false);
   });
 
-
   it('extracts a table without caption', () => {
     const table = createTable(`
       <table>
@@ -59,7 +56,6 @@ describe('TableExtractor', () => {
     expect((result as any).rows.length).toBe(1);
     expect((result as any).rows[0].cells[0].content).toBe('A');
   });
-
 
   it('handles colspan and rowspan', () => {
     const table = createTable(`

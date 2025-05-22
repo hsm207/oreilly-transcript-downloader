@@ -36,7 +36,9 @@ describe('BookChapterPdfService', () => {
   });
 
   it('logs error and throws if #book-content is missing', async () => {
-    await expect(BookChapterPdfService.downloadCurrentChapterAsPdf('fail.pdf', logger)).rejects.toThrow();
+    await expect(
+      BookChapterPdfService.downloadCurrentChapterAsPdf('fail.pdf', logger),
+    ).rejects.toThrow();
     expect(loggerError).toHaveBeenCalledWith(expect.stringContaining('#book-content not found'));
   });
 });
