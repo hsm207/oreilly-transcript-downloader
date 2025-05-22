@@ -11,7 +11,7 @@ export class PdfGenerator {
    * @param elements Ordered chapter elements
    * @param filename Name for the downloaded PDF
    */
-  static async generateAndDownload(
+  async generateAndDownload(
     elements: BookChapterElement[],
     filename: string,
     logger: PersistentLogger = PersistentLogger.instance,
@@ -162,6 +162,7 @@ export class PdfGenerator {
               usableWidth,
               pageHeight,
               bottomMargin,
+              logger,
             );
             break;
           }
@@ -220,10 +221,9 @@ export class PdfGenerator {
     usableWidth: number,
     pageHeight: number,
     bottomMargin: number,
+    logger: PersistentLogger = PersistentLogger.instance,
   ): number {
-    (arguments[6] as PersistentLogger | undefined)?.info?.(
-      `Rendering table with ${table.rows.length} rows`,
-    );
+    logger?.info?.(`Rendering table with ${table.rows.length} rows`);
 
     // Calculate cell dimensions
     const maxCellsInAnyRow = Math.max(
@@ -246,7 +246,7 @@ export class PdfGenerator {
 
     // If there's a caption, render it first
     if (table.caption) {
-      (arguments[6] as PersistentLogger | undefined)?.debug?.(
+      logger?.debug?.(
         `Rendering table caption: ${table.caption.substring(0, 30)}${table.caption.length > 30 ? '...' : ''}`,
       );
       const captionFontSize = 10;
@@ -360,7 +360,7 @@ export class PdfGenerator {
 
     // Check if table needs to start on a new page
     if (y + rowHeights.reduce((sum, height) => sum + height, 0) > pageHeight - bottomMargin) {
-      PersistentLogger.debug?.(`Table too tall for current page, adding new page`);
+      logger?.info?.("Table too tall for current page, adding new page");
       doc.addPage();
       y = 20; // topMargin
 
@@ -433,7 +433,7 @@ export class PdfGenerator {
         if (pos.y + pos.height > pageHeight - bottomMargin) {
           // This shouldn't happen since we check for page breaks before rendering,
           // but just in case, log a warning
-          PersistentLogger.warn?.(`Cell at row ${rowIndex}, col ${colIndex} crosses page boundary`);
+          logger?.warn?.(`Cell at row ${rowIndex}, col ${colIndex} crosses page boundary`);
         }
 
         // Draw cell border
