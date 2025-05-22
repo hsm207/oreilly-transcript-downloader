@@ -4,18 +4,15 @@ import { BookChapterElement } from '../models/BookChapterElement';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Mock the chrome API for PersistentLogger
-vi.mock('../../infrastructure/logging/PersistentLogger', () => ({
-  PersistentLogger: {
-    getInstance: vi.fn().mockReturnValue({
-      debug: vi.fn(),
-      log: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    }),
-  },
-}));
+
+// Create a mock logger instance for injection
+class MockLogger {
+  debug = vi.fn();
+  log = vi.fn();
+  info = vi.fn();
+  warn = vi.fn();
+  error = vi.fn();
+}
 
 /**
  * Normalizes whitespace in a string.
@@ -30,10 +27,14 @@ function normalizeWhitespace(text: string): string {
 
 describe('BookChapterExtractor', () => {
   let root: HTMLElement;
+  let logger: MockLogger;
+  let extractor: BookChapterExtractor;
 
   beforeEach(() => {
     root = document.createElement('div');
     root.id = 'book-content';
+    logger = new MockLogger();
+    extractor = new BookChapterExtractor(logger as any);
   });
 
   /**
@@ -70,7 +71,7 @@ describe('BookChapterExtractor', () => {
     const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
 
     // Extract content using the BookChapterExtractor
-    const result = BookChapterExtractor.extract(chapterDiv);
+    const result = extractor.extract(chapterDiv);
 
     expect(result.length).toBe(expectedElements.length);
     result.forEach((actualElement, index) => {
@@ -113,7 +114,7 @@ describe('BookChapterExtractor', () => {
     );
     const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
 
-    const result = BookChapterExtractor.extract(root);
+    const result = extractor.extract(root);
 
     expect(result.length).toBe(expectedElements.length);
     result.forEach((actualElement, index) => {
@@ -160,7 +161,7 @@ describe('BookChapterExtractor', () => {
     // Log the expected elements
     console.log('Expected elements:', JSON.stringify(expectedElements, null, 2));
 
-    const result = BookChapterExtractor.extract(root);
+    const result = extractor.extract(root);
 
     // Log the actual elements
     console.log('Actual elements:', JSON.stringify(result, null, 2));
@@ -257,7 +258,7 @@ describe('BookChapterExtractor', () => {
     );
     const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
 
-    const result = BookChapterExtractor.extract(root.firstChild as HTMLElement); // Pass sbo-rt-content
+    const result = extractor.extract(root.firstChild as HTMLElement); // Pass sbo-rt-content
 
     console.log('Complex Chapter Test - Expected:', JSON.stringify(expectedElements, null, 2));
     console.log('Complex Chapter Test - Actual:', JSON.stringify(result, null, 2));
@@ -332,7 +333,7 @@ describe('BookChapterExtractor', () => {
     const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
 
     // Extract content using the BookChapterExtractor
-    const result = BookChapterExtractor.extract(chapterDiv);
+    const result = extractor.extract(chapterDiv);
 
     // Compare the results
     expect(result.length).toBe(expectedElements.length);
@@ -395,7 +396,7 @@ describe('BookChapterExtractor', () => {
     const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
 
     // Extract content using the BookChapterExtractor
-    const result = BookChapterExtractor.extract(chapterDiv);
+    const result = extractor.extract(chapterDiv);
 
     // Log results for easier debugging
     console.log('Table test - Expected elements count:', expectedElements.length);
@@ -480,7 +481,7 @@ describe('BookChapterExtractor', () => {
     const expectedElements: BookChapterElement[] = JSON.parse(expectedJson);
 
     // Extract content using the BookChapterExtractor
-    const result = BookChapterExtractor.extract(chapterDiv);
+    const result = extractor.extract(chapterDiv);
 
     console.log(
       'Example table test - Expected elements:',
