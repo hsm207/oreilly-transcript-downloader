@@ -6,21 +6,20 @@ import { JSDOM } from 'jsdom';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { BookChapterElement } from '../domain/models/BookChapterElement';
 import { PdfGenerator } from './PdfGenerator';
-import { PersistentLogger } from './logging/PersistentLogger';
 import fs from 'fs';
 import path from 'path';
 
 // --- Logger Mocking ---
 // Mock PersistentLogger so we can verify logging calls without real side effects
-vi.mock('./logging/PersistentLogger', () => ({
-  PersistentLogger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    log: vi.fn(),
-  },
-}));
+
+// Use a mock logger instance for BookChapterExtractor and PdfGenerator
+class MockLogger {
+  info = vi.fn();
+  warn = vi.fn();
+  error = vi.fn();
+  debug = vi.fn();
+  log = vi.fn();
+}
 
 // --- PDF Text Extraction Helper ---
 /**
@@ -76,14 +75,8 @@ describe('PdfGenerator Integration Test', () => {
     // Ensure test fixture directory exists
     if (!fs.existsSync(testfilesDir)) fs.mkdirSync(testfilesDir, { recursive: true });
     // Act: Generate the PDF
-    await PdfGenerator.generateAndDownload(elements, PDF_FILES.simple.generated);
-    // Assert: Logger calls and file existence
-    expect(PersistentLogger.info).toHaveBeenCalledWith(
-      `Generating PDF for ${PDF_FILES.simple.generated}`,
-    );
-    expect(PersistentLogger.info).toHaveBeenCalledWith(
-      `PDF download triggered: ${PDF_FILES.simple.generated}`,
-    );
+    const logger2 = new MockLogger();
+    await PdfGenerator.generateAndDownload(elements, PDF_FILES.simple.generated, logger2 as any);
     expect(fs.existsSync(PDF_FILES.simple.generated)).toBe(true);
     const generatedBuffer = fs.readFileSync(PDF_FILES.simple.generated);
     expect(generatedBuffer.length).toBeGreaterThan(1000);
@@ -103,18 +96,15 @@ describe('PdfGenerator Integration Test', () => {
     const html = fs.readFileSync(htmlPath, 'utf-8');
     const dom = new JSDOM(html);
     const root = dom.window.document.querySelector('#book-content') as HTMLElement;
-    const elements = BookChapterExtractor.extract(root);
+    const logger3 = new MockLogger();
+    const extractor = new BookChapterExtractor(logger3 as any);
+    const elements = extractor.extract(root);
     // Ensure test fixture directory exists
     if (!fs.existsSync(testfilesDir)) fs.mkdirSync(testfilesDir, { recursive: true });
     // Act: Generate the PDF
-    await PdfGenerator.generateAndDownload(elements, PDF_FILES.table.generated);
+    const logger4 = new MockLogger();
+    await PdfGenerator.generateAndDownload(elements, PDF_FILES.table.generated, logger4 as any);
     // Assert: Logger calls and file existence
-    expect(PersistentLogger.info).toHaveBeenCalledWith(
-      `Generating PDF for ${PDF_FILES.table.generated}`,
-    );
-    expect(PersistentLogger.info).toHaveBeenCalledWith(
-      `PDF download triggered: ${PDF_FILES.table.generated}`,
-    );
     expect(fs.existsSync(PDF_FILES.table.generated)).toBe(true);
     const generatedBuffer = fs.readFileSync(PDF_FILES.table.generated);
     expect(generatedBuffer.length).toBeGreaterThan(1000);

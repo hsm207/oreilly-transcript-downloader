@@ -14,9 +14,10 @@ export class PdfGenerator {
   static async generateAndDownload(
     elements: BookChapterElement[],
     filename: string,
+    logger: PersistentLogger = PersistentLogger.instance
   ): Promise<void> {
     try {
-      await PersistentLogger.info(`Generating PDF for ${filename}`);
+      await logger.info(`Generating PDF for ${filename}`);
       // Set up jsPDF for A4 size, mm units
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const pageWidth = 210;
@@ -81,7 +82,7 @@ export class PdfGenerator {
                 i++; // Skip the caption in the next iteration
               }
             } catch (err) {
-              await PersistentLogger.warn(`Failed to load image: ${el.src}`);
+              await logger.warn(`Failed to load image: ${el.src}`);
             }
           }
           continue;
@@ -167,9 +168,9 @@ export class PdfGenerator {
         }
       }
       doc.save(filename);
-      await PersistentLogger.info(`PDF download triggered: ${filename}`);
+      await logger.info(`PDF download triggered: ${filename}`);
     } catch (err) {
-      await PersistentLogger.error(
+      await logger.error(
         `PDF generation failed: ${err instanceof Error ? err.message : String(err)}`,
       );
       throw err;
@@ -220,7 +221,7 @@ export class PdfGenerator {
     pageHeight: number,
     bottomMargin: number,
   ): number {
-    PersistentLogger.info?.(`Rendering table with ${table.rows.length} rows`);
+    (arguments[6] as PersistentLogger | undefined)?.info?.(`Rendering table with ${table.rows.length} rows`);
 
     // Calculate cell dimensions
     const maxCellsInAnyRow = Math.max(
@@ -243,7 +244,7 @@ export class PdfGenerator {
 
     // If there's a caption, render it first
     if (table.caption) {
-      PersistentLogger.debug?.(
+      (arguments[6] as PersistentLogger | undefined)?.debug?.(
         `Rendering table caption: ${table.caption.substring(0, 30)}${table.caption.length > 30 ? '...' : ''}`,
       );
       const captionFontSize = 10;

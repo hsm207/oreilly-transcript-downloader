@@ -1,13 +1,25 @@
 import { TableExtractor } from './TableExtractor';
-// import { BookChapterElement } from "../../models/BookChapterElement";
+import { PersistentLogger } from '../../../infrastructure/logging/PersistentLogger';
 import { describe, it, expect } from 'vitest';
 
 describe('TableExtractor', () => {
+
   function createTable(html: string): HTMLElement {
     const div = document.createElement('div');
     div.innerHTML = html.trim();
     return div.querySelector('table') as HTMLElement;
   }
+
+  // Mock logger instance with no-op methods
+  class MockLogger extends PersistentLogger {
+    setFormat(format: string): void {}
+    async log(message: string, level: string = 'log'): Promise<void> {}
+    async info(message: string): Promise<void> {}
+    async warn(message: string): Promise<void> {}
+    async error(message: string): Promise<void> {}
+    async debug(message: string): Promise<void> {}
+  }
+
 
   it('extracts a simple table with header and body', () => {
     const table = createTable(`
@@ -22,7 +34,8 @@ describe('TableExtractor', () => {
         </tbody>
       </table>
     `);
-    const result = TableExtractor.extract(table);
+    const extractor = new TableExtractor(new MockLogger());
+    const result = extractor.extract(table);
     expect(result.type).toBe('table');
     expect((result as any).caption).toBe('Sample Table');
     expect((result as any).rows.length).toBe(3);
@@ -32,18 +45,21 @@ describe('TableExtractor', () => {
     expect((result as any).rows[1].cells[0].isHeader).toBe(false);
   });
 
+
   it('extracts a table without caption', () => {
     const table = createTable(`
       <table>
         <tr><td>A</td><td>B</td></tr>
       </table>
     `);
-    const result = TableExtractor.extract(table);
+    const extractor = new TableExtractor(new MockLogger());
+    const result = extractor.extract(table);
     expect(result.type).toBe('table');
     expect((result as any).caption).toBeUndefined();
     expect((result as any).rows.length).toBe(1);
     expect((result as any).rows[0].cells[0].content).toBe('A');
   });
+
 
   it('handles colspan and rowspan', () => {
     const table = createTable(`
@@ -53,14 +69,16 @@ describe('TableExtractor', () => {
         <tr><td>C</td></tr>
       </table>
     `);
-    const result = TableExtractor.extract(table);
+    const extractor = new TableExtractor(new MockLogger());
+    const result = extractor.extract(table);
     expect((result as any).rows[0].cells[0].colspan).toBe(2);
     expect((result as any).rows[1].cells[0].rowspan).toBe(2);
   });
 
   it('returns empty rows for empty table', () => {
     const table = createTable(`<table></table>`);
-    const result = TableExtractor.extract(table);
+    const extractor = new TableExtractor(new MockLogger());
+    const result = extractor.extract(table);
     expect(result.type).toBe('table');
     expect((result as any).rows.length).toBe(0);
   });
