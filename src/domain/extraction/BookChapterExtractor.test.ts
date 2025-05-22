@@ -4,7 +4,6 @@ import { BookChapterElement } from '../models/BookChapterElement';
 import * as fs from 'fs';
 import * as path from 'path';
 
-
 // Create a mock logger instance for injection
 class MockLogger {
   debug = vi.fn();

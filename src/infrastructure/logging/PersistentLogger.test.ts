@@ -5,10 +5,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PersistentLogger } from './PersistentLogger';
 
-
-
 describe('PersistentLogger', () => {
-
   let logger: PersistentLogger;
   let originalChrome: any;
   beforeEach(() => {
@@ -37,7 +34,7 @@ describe('PersistentLogger', () => {
     expect(call.action).toBe('log');
     // Allow for possible variations in file name (e.g., .spec.ts or .test.ts)
     expect(call.payload).toMatch(
-      /(PersistentLogger\.(test|spec)\.ts) \d+ \d{2}:\d{2}:\d{2} \d{4}-\d{2}-\d{2}: Test log message/
+      /(PersistentLogger\.(test|spec)\.ts) \d+ \d{2}:\d{2}:\d{2} \d{4}-\d{2}-\d{2}: Test log message/,
     );
   });
 
@@ -62,7 +59,10 @@ describe('PersistentLogger', () => {
       });
       await logger.log('No stack');
       expect(global.chrome.runtime.sendMessage).toHaveBeenCalled();
-      const call = global.chrome.runtime.sendMessage.mock.calls[global.chrome.runtime.sendMessage.mock.calls.length - 1][0];
+      const call =
+        global.chrome.runtime.sendMessage.mock.calls[
+          global.chrome.runtime.sendMessage.mock.calls.length - 1
+        ][0];
       expect(call.payload).toMatch(/unknown 0/);
     } finally {
       // Restore

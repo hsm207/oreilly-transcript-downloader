@@ -15,7 +15,7 @@ export class BookChapterPdfService {
    */
   static async downloadCurrentChapterAsPdf(
     filename: string,
-    logger: PersistentLogger = PersistentLogger.instance
+    logger: PersistentLogger = PersistentLogger.instance,
   ): Promise<void> {
     const root = document.getElementById('book-content');
     if (!root) {
