@@ -13,7 +13,7 @@ import { PersistentLogger } from './infrastructure/logging/PersistentLogger';
 import { BookChapterExtractor } from './domain/extraction/BookChapterExtractor';
 import { PdfGenerator } from './infrastructure/PdfGenerator';
 
-// Compose dependencies for AllChapterPdfDownloadService
+// On every page load, check if book chapter download state exists and resume download using the application service
 const allChapterPdfDownloadService = new AllChapterPdfDownloadService(
   new DefaultTocExtractor(),
   new BookChapterDownloadStateRepository(),
@@ -24,6 +24,8 @@ const allChapterPdfDownloadService = new AllChapterPdfDownloadService(
   ),
   PersistentLogger.instance,
 );
+
+allChapterPdfDownloadService.resumeDownloadIfNeeded();
 
 // On every page load, check if transcript download state exists and resume download using the application service
 const transcriptDownloadStateRepo = new TranscriptDownloadStateRepository();
