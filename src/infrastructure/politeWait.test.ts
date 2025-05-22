@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { politeWait } from "./politeWait";
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { politeWait } from './politeWait';
 
-describe("politeWait", () => {
+describe('politeWait', () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -11,7 +11,7 @@ describe("politeWait", () => {
     vi.useRealTimers();
   });
 
-  it("waits for the default time (3000ms)", async () => {
+  it('waits for the default time (3000ms)', async () => {
     const promise = politeWait();
     expect(vi.getTimerCount()).toBe(1);
     vi.advanceTimersByTime(3000);
@@ -19,7 +19,7 @@ describe("politeWait", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it("waits for the specified time", async () => {
+  it('waits for the specified time', async () => {
     const promise = politeWait(1500);
     expect(vi.getTimerCount()).toBe(1);
     vi.advanceTimersByTime(1500);
