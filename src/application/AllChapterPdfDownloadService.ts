@@ -1,7 +1,5 @@
 import { TocExtractor } from '../domain/extraction/TocExtractor';
-import {
-  BookChapterDownloadStateRepository,
-} from '../infrastructure/BookChapterDownloadStateRepository';
+import { BookChapterDownloadStateRepository } from '../infrastructure/BookChapterDownloadStateRepository';
 import { PersistentLogger } from '../infrastructure/logging/PersistentLogger';
 import { BookChapterPdfService } from './BookChapterPdfService';
 import { waitForBookContent } from '../infrastructure/waitForBookContent';
@@ -89,6 +87,11 @@ export class AllChapterPdfDownloadService {
       // Last chapter: clear state and log completion
       this.stateRepo.clear();
       await this.logger.info('Bulk chapter download completed.');
+
+      // Show a notification to the user - careful about wording, not guaranteeing success
+      alert(
+        'All chapters have been processed. Please check the extension logs for any errors or warnings.',
+      );
     }
   }
 }

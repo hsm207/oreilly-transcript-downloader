@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { AllChapterPdfDownloadService } from "./AllChapterPdfDownloadService";
-import * as waitModule from "../infrastructure/waitForBookContent";
-import * as politeWaitModule from "../infrastructure/politeWait";
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { AllChapterPdfDownloadService } from './AllChapterPdfDownloadService';
+import * as waitModule from '../infrastructure/waitForBookContent';
+import * as politeWaitModule from '../infrastructure/politeWait';
 import {
   BookChapterDownloadStateRepository,
   BookChapterDownloadState,
-} from "../infrastructure/BookChapterDownloadStateRepository";
-import { TocExtractor } from "../domain/extraction/TocExtractor";
-import { BookChapterPdfService } from "./BookChapterPdfService";
+} from '../infrastructure/BookChapterDownloadStateRepository';
+import { TocExtractor } from '../domain/extraction/TocExtractor';
+import { BookChapterPdfService } from './BookChapterPdfService';
 
-vi.mock("./BookChapterPdfService"); // Automatically mock all exports
+vi.mock('./BookChapterPdfService'); // Automatically mock all exports
 
-describe("AllChapterPdfDownloadService", () => {
+describe('AllChapterPdfDownloadService', () => {
   let waitForBookContentSpy: ReturnType<typeof vi.spyOn>;
   let politeWaitSpy: ReturnType<typeof vi.spyOn>;
   let service: AllChapterPdfDownloadService;
@@ -21,15 +21,19 @@ describe("AllChapterPdfDownloadService", () => {
   let mockLogger: any;
   let originalLocation: Location;
   let mockLocation: { href: string };
+  let originalAlert: typeof window.alert;
 
   beforeEach(() => {
+    // Mock window.alert
+    originalAlert = window.alert;
+    window.alert = vi.fn();
     // Spy on waitForBookContent and resolve immediately by default
     waitForBookContentSpy = vi
-      .spyOn(waitModule, "waitForBookContent")
-      .mockResolvedValue(document.createElement("div")) as unknown as ReturnType<typeof vi.spyOn>;
+      .spyOn(waitModule, 'waitForBookContent')
+      .mockResolvedValue(document.createElement('div')) as unknown as ReturnType<typeof vi.spyOn>;
     // Spy on politeWait and resolve immediately for tests
     politeWaitSpy = vi
-      .spyOn(politeWaitModule, "politeWait")
+      .spyOn(politeWaitModule, 'politeWait')
       .mockResolvedValue(undefined) as unknown as ReturnType<typeof vi.spyOn>;
     vi.clearAllMocks();
 
@@ -54,8 +58,8 @@ describe("AllChapterPdfDownloadService", () => {
 
     // Mock window.location for navigation testing
     originalLocation = window.location;
-    mockLocation = { href: "http://initial.com/default-page" };
-    Object.defineProperty(window, "location", {
+    mockLocation = { href: 'http://initial.com/default-page' };
+    Object.defineProperty(window, 'location', {
       value: mockLocation,
       writable: true,
       configurable: true,
@@ -65,15 +69,16 @@ describe("AllChapterPdfDownloadService", () => {
       mockTocExtractor,
       mockStateRepo,
       mockBookChapterPdfService,
-      mockLogger
+      mockLogger,
     );
   });
 
   afterEach(() => {
     waitForBookContentSpy.mockRestore();
     politeWaitSpy.mockRestore();
+    window.alert = originalAlert;
     // Restore original window.location
-    Object.defineProperty(window, "location", {
+    Object.defineProperty(window, 'location', {
       value: originalLocation,
       writable: true,
       configurable: true,
@@ -191,7 +196,9 @@ describe("AllChapterPdfDownloadService", () => {
     await service.resumeDownloadIfNeeded();
     expect(waitForBookContentSpy).toHaveBeenCalled();
     // Assert
-    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith('Chapter 2.pdf');
+    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith(
+      'Chapter 2.pdf',
+    );
     expect(mockStateRepo.clear).toHaveBeenCalled();
     expect(mockLogger.info).toHaveBeenCalledWith('Processing chapter: Chapter 2');
     expect(mockLogger.info).toHaveBeenCalledWith('Chapter 2 PDF download initiated.');
@@ -215,8 +222,33 @@ describe("AllChapterPdfDownloadService", () => {
     await service.resumeDownloadIfNeeded();
     // Assert
     expect(waitForBookContentSpy).toHaveBeenCalled();
-    expect(mockLogger.error).toHaveBeenCalledWith('Book content did not load in time. Aborting chapter download.');
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Book content did not load in time. Aborting chapter download.',
+    );
     // Should not process chapter or navigate
     expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).not.toHaveBeenCalled();
+  });
+
+  it('should display completion alert with appropriate cautious wording when processing the last chapter', async () => {
+    // Ensure waitForBookContent is called and resolves
+    waitForBookContentSpy.mockResolvedValue(document.createElement('div'));
+    // Arrange: mock state with the last chapter to process
+    const tocItems = [
+      { title: 'Chapter 1', href: '/chapter1' },
+      { title: 'Chapter 2', href: '/chapter2' },
+    ];
+    const initialState: BookChapterDownloadState = {
+      tocItems,
+      currentIndex: 1, // Pointing to the last chapter
+    };
+    (mockStateRepo.load as any).mockReturnValue(initialState);
+
+    // Act
+    await service.resumeDownloadIfNeeded();
+
+    // Assert
+    expect(window.alert).toHaveBeenCalledWith(
+      'All chapters have been processed. Please check the extension logs for any errors or warnings.',
+    );
   });
 });
