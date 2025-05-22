@@ -5,6 +5,7 @@ import {
 import { PersistentLogger } from '../infrastructure/logging/PersistentLogger';
 import { BookChapterPdfService } from './BookChapterPdfService';
 import { waitForBookContent } from '../infrastructure/waitForBookContent';
+import { politeWait } from '../infrastructure/politeWait';
 
 /**
  * Service to orchestrate downloading all chapters as PDFs for a book.
@@ -47,6 +48,7 @@ export class AllChapterPdfDownloadService {
     if (tocItems.length > 0) {
       await this.logger.info('Bulk chapter download started.');
       const nextUrl = new URL(tocItems[0].href, window.location.href).toString();
+      await politeWait(1000); // Brief wait before initial navigation
       await this.logger.info(`Navigating to: ${nextUrl}`);
       window.location.href = nextUrl;
     }
@@ -79,6 +81,7 @@ export class AllChapterPdfDownloadService {
     if (currentIndex < tocItems.length - 1) {
       // Not last chapter: increment index, save state, and navigate
       this.stateRepo.save({ tocItems, currentIndex: currentIndex + 1 });
+      await politeWait(); // Default 3 second wait before navigating to next chapter
       const nextUrl = new URL(tocItems[currentIndex + 1].href, window.location.href).toString();
       await this.logger.info(`Navigating to: ${nextUrl}`);
       window.location.href = nextUrl;
