@@ -15,15 +15,12 @@ describe('DefaultTocExtractor', () => {
   });
 
   it('should extract all links from a real TOC HTML file', () => {
-    // Read the sample TOC HTML file
-    const html = fs.readFileSync(path.join(__dirname, '__testdata__', 'sample-toc.html'), 'utf-8');
-    // Create a container and set its innerHTML
+    // Read the sample TOC HTML file (video course)
+    const html = fs.readFileSync(path.join(__dirname, '__testdata__', 'sample-toc-video-course.html'), 'utf-8');
     const container = document.createElement('div');
     container.innerHTML = html;
-    // Find the TOC root (the <ol> with data-testid="tocItems")
     const tocRoot = container.querySelector('ol[data-testid="tocItems"]') as HTMLElement;
     const items: TableOfContentsItem[] = extractor.extractItems(tocRoot);
-    // Assert the extracted items
     expect(items).toEqual([
       {
         title: 'Mr. Whiskers: Purr-gramming Basics - When Cats Write Code',
