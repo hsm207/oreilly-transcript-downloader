@@ -22,6 +22,11 @@ import { TableExtractor } from './components/TableExtractor';
 import { TextNormalizer } from './components/TextNormalizer';
 
 export class BookChapterExtractor {
+  private logger: PersistentLogger;
+
+  constructor(logger: PersistentLogger = PersistentLogger.instance) {
+    this.logger = logger;
+  }
   // TODO: Improve handling of inline footnote markers (like asterisks) that aren't wrapped in HTML elements
 
   /**
@@ -41,9 +46,9 @@ export class BookChapterExtractor {
    * @param node The DOM node to process.
    * @param elements An array where extracted BookChapterElement objects are collected.
    */
-  private static processNode(node: Node, elements: BookChapterElement[]): void {
+  private processNode(node: Node, elements: BookChapterElement[]): void {
     if (node.nodeType !== Node.ELEMENT_NODE) {
-      BookChapterExtractor.processTextNode(node, elements);
+      this.processTextNode(node, elements);
       return;
     }
 
@@ -51,26 +56,25 @@ export class BookChapterExtractor {
     const tagName = htmlElement.tagName.toLowerCase();
     const classList = htmlElement.classList;
 
-    PersistentLogger.debug?.(
+    this.logger.debug(
       `Processing element: ${tagName}${htmlElement.id ? '#' + htmlElement.id : ''}${
         classList && classList.length ? '.' + Array.from(classList).join('.') : ''
       }`,
     );
 
     if (BookChapterExtractor.shouldSkipElement(tagName)) {
-      PersistentLogger.debug?.(`Skipping non-content element: ${tagName}`);
+      this.logger.debug(`Skipping non-content element: ${tagName}`);
       return;
     }
 
-    if (BookChapterExtractor.processHeading(htmlElement, tagName, elements)) return;
-    if (BookChapterExtractor.processParagraphOrCaption(htmlElement, tagName, classList, elements))
-      return;
-    if (BookChapterExtractor.processList(htmlElement, tagName, elements)) return;
-    if (BookChapterExtractor.processTable(htmlElement, tagName, elements)) return;
-    if (BookChapterExtractor.processImage(htmlElement, tagName, elements)) return;
-    if (BookChapterExtractor.processCite(htmlElement, tagName, elements)) return;
+    if (this.processHeading(htmlElement, tagName, elements)) return;
+    if (this.processParagraphOrCaption(htmlElement, tagName, classList, elements)) return;
+    if (this.processList(htmlElement, tagName, elements)) return;
+    if (this.processTable(htmlElement, tagName, elements)) return;
+    if (this.processImage(htmlElement, tagName, elements)) return;
+    if (this.processCite(htmlElement, tagName, elements)) return;
 
-    BookChapterExtractor.processContainer(htmlElement, tagName, classList, elements);
+    this.processContainer(htmlElement, tagName, classList, elements);
   }
 
   private static shouldSkipElement(tagName: string): boolean {
@@ -87,7 +91,7 @@ export class BookChapterExtractor {
     ].includes(tagName);
   }
 
-  private static processHeading(
+  private processHeading(
     htmlElement: HTMLElement,
     tagName: string,
     elements: BookChapterElement[],
@@ -110,7 +114,7 @@ export class BookChapterExtractor {
       text = BookChapterExtractor.cleanNodeText(htmlElement);
     }
     if (text) {
-      PersistentLogger.debug?.(
+      this.logger.debug(
         `Adding heading level ${level}: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
       );
       elements.push({ type: 'heading', level, text });
@@ -118,7 +122,7 @@ export class BookChapterExtractor {
     return true;
   }
 
-  private static processParagraphOrCaption(
+  private processParagraphOrCaption(
     htmlElement: HTMLElement,
     tagName: string,
     classList: DOMTokenList,
@@ -133,14 +137,14 @@ export class BookChapterExtractor {
         const src = imgElem.getAttribute('src') || '';
         const alt = imgElem.getAttribute('alt') || '';
         if (src) {
-          PersistentLogger.debug?.(`Adding image from paragraph: src="${src}", alt="${alt}"`);
+          this.logger.debug(`Adding image from paragraph: src="${src}", alt="${alt}"`);
           elements.push({ type: 'image', src, alt });
         }
       }
     }
 
     if (htmlElement.innerHTML === '&nbsp;' || htmlElement.innerHTML.trim() === '\u00A0') {
-      PersistentLogger.debug?.(`Adding non-breaking space paragraph`);
+      this.logger.debug(`Adding non-breaking space paragraph`);
       elements.push({ type: 'paragraph', text: '\u00A0' });
       return true;
     }
@@ -153,17 +157,17 @@ export class BookChapterExtractor {
     const isEpigraphSource = classList.contains('chapterEpigraphSource');
 
     if (classList.contains('caption') || tagName === 'figcaption') {
-      PersistentLogger.debug?.(
+      this.logger.debug(
         `Adding caption: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
       );
       elements.push({ type: 'caption', text });
     } else if (isEpigraphText || isEpigraphSource) {
-      PersistentLogger.debug?.(
+      this.logger.debug(
         `Adding epigraph: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
       );
       elements.push({ type: 'paragraph', text });
     } else {
-      PersistentLogger.debug?.(
+      this.logger.debug(
         `Adding paragraph: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
       );
       if (isChapterOpener) {
@@ -175,7 +179,7 @@ export class BookChapterExtractor {
     return true;
   }
 
-  private static processList(
+  private processList(
     htmlElement: HTMLElement,
     tagName: string,
     elements: BookChapterElement[],
@@ -197,21 +201,22 @@ export class BookChapterExtractor {
     return true;
   }
 
-  private static processTable(
+  private processTable(
     htmlElement: HTMLElement,
     tagName: string,
     elements: BookChapterElement[],
   ): boolean {
     if (tagName !== 'table') return false;
-    PersistentLogger.debug?.(
+    this.logger.debug(
       `Found table element: ${tagName}${htmlElement.className ? '.' + htmlElement.className.replace(' ', '.') : ''}`,
     );
-    const tableElement = TableExtractor.extract(htmlElement);
+    const tableExtractor = new TableExtractor(this.logger);
+    const tableElement = tableExtractor.extract(htmlElement);
     elements.push(tableElement);
     return true;
   }
 
-  private static processImage(
+  private processImage(
     htmlElement: HTMLElement,
     tagName: string,
     elements: BookChapterElement[],
@@ -220,15 +225,15 @@ export class BookChapterExtractor {
     const src = htmlElement.getAttribute('src') || '';
     const alt = htmlElement.getAttribute('alt') || '';
     if (src) {
-      PersistentLogger.debug?.(`Adding image: src="${src}", alt="${alt}"`);
+      this.logger.debug(`Adding image: src="${src}", alt="${alt}"`);
       elements.push({ type: 'image', src, alt });
     } else {
-      PersistentLogger.debug?.(`Skipping image with empty src`);
+      this.logger.debug(`Skipping image with empty src`);
     }
     return true;
   }
 
-  private static processCite(
+  private processCite(
     htmlElement: HTMLElement,
     tagName: string,
     elements: BookChapterElement[],
@@ -241,7 +246,7 @@ export class BookChapterExtractor {
     return true;
   }
 
-  private static processContainer(
+  private processContainer(
     htmlElement: HTMLElement,
     tagName: string,
     classList: DOMTokenList,
@@ -267,14 +272,14 @@ export class BookChapterExtractor {
       classList.contains('chapterHead');
 
     if (containerElements.includes(tagName) || isSpecialContainer) {
-      PersistentLogger.debug?.(`Processing children of container: ${tagName}`);
+      this.logger.debug(`Processing children of container: ${tagName}`);
       for (const child of Array.from(htmlElement.childNodes)) {
-        BookChapterExtractor.processNode(child, elements);
+        this.processNode(child, elements);
       }
     }
   }
 
-  private static processTextNode(node: Node, elements: BookChapterElement[]): void {
+  private processTextNode(node: Node, elements: BookChapterElement[]): void {
     // Intentionally left blank: see comments in original code.
     // Text nodes are handled by their parent block elements.
   }
@@ -284,20 +289,20 @@ export class BookChapterExtractor {
    * @param root The root HTML element (e.g., #book-content, #sbo-rt-content, or a .chapter div).
    * @returns An array of BookChapterElement in DOM order.
    */
-  public static extract(root: HTMLElement): BookChapterElement[] {
+  public extract(root: HTMLElement): BookChapterElement[] {
     const elements: BookChapterElement[] = [];
     if (!root || typeof root.querySelectorAll !== 'function') {
-      PersistentLogger.warn?.('BookChapterExtractor.extract called with invalid root element.');
+      this.logger.warn('BookChapterExtractor.extract called with invalid root element.');
       return elements;
     }
 
-    PersistentLogger.info?.(
+    this.logger.info(
       `Starting extraction from root element: ${root.tagName}${root.id ? '#' + root.id : ''}${root.className ? '.' + root.className.replace(' ', '.') : ''}`,
     );
 
-    BookChapterExtractor.processNode(root, elements);
+    this.processNode(root, elements);
 
-    PersistentLogger.info?.(`Extraction complete. Found ${elements.length} elements.`);
+    this.logger.info(`Extraction complete. Found ${elements.length} elements.`);
     return elements;
   }
 }

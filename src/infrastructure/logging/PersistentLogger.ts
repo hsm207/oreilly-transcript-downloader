@@ -7,14 +7,15 @@
  * Default: "{file} {line} {time} {date}: {message}"
  */
 export class PersistentLogger {
-  private static logFormat = '{file} {line} {time} {date}: {message}';
+  protected logFormat = '{file} {line} {time} {date}: {message}';
+  static instance: PersistentLogger = new PersistentLogger();
 
   /**
    * Sets the log message format.
    * @param format The format string, e.g. "{file} {line} {time} {date}: {message}"
    */
-  static setFormat(format: string): void {
-    PersistentLogger.logFormat = format;
+  setFormat(format: string): void {
+    this.logFormat = format;
   }
 
   /**
@@ -22,7 +23,7 @@ export class PersistentLogger {
    * @param message The message to log.
    * @param level The log level: 'log', 'info', 'warn', 'error', 'debug'. Defaults to 'log'.
    */
-  static async log(
+  async log(
     message: string,
     level: 'log' | 'info' | 'warn' | 'error' | 'debug' = 'log',
   ): Promise<void> {
@@ -30,7 +31,7 @@ export class PersistentLogger {
     const now = new Date();
     const time = now.toLocaleTimeString('en-GB', { hour12: false }).padStart(8, '0');
     const date = now.toISOString().slice(0, 10);
-    const formatted = PersistentLogger.logFormat
+    const formatted = this.logFormat
       .replace('{file}', file)
       .replace('{line}', line)
       .replace('{time}', time)
@@ -48,32 +49,32 @@ export class PersistentLogger {
    * Logs an info-level message.
    * @param message The message to log.
    */
-  static async info(message: string): Promise<void> {
-    return PersistentLogger.log(message, 'info');
+  async info(message: string): Promise<void> {
+    return this.log(message, 'info');
   }
 
   /**
    * Logs a warning-level message.
    * @param message The message to log.
    */
-  static async warn(message: string): Promise<void> {
-    return PersistentLogger.log(message, 'warn');
+  async warn(message: string): Promise<void> {
+    return this.log(message, 'warn');
   }
 
   /**
    * Logs an error-level message.
    * @param message The message to log.
    */
-  static async error(message: string): Promise<void> {
-    return PersistentLogger.log(message, 'error');
+  async error(message: string): Promise<void> {
+    return this.log(message, 'error');
   }
 
   /**
    * Logs a debug-level message.
    * @param message The message to log.
    */
-  static async debug(message: string): Promise<void> {
-    return PersistentLogger.log(message, 'debug');
+  async debug(message: string): Promise<void> {
+    return this.log(message, 'debug');
   }
 
   /**
