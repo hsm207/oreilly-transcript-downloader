@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { waitForBookContent } from "./waitForBookContent";
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { waitForBookContent } from './waitForBookContent';
 
-describe("waitForBookContent", () => {
+describe('waitForBookContent', () => {
   let originalGetElementById: typeof document.getElementById;
 
   beforeEach(() => {
@@ -11,30 +11,30 @@ describe("waitForBookContent", () => {
   afterEach(() => {
     // @ts-ignore
     document.getElementById = originalGetElementById;
-    document.body.innerHTML = "";
+    document.body.innerHTML = '';
   });
 
-  it("resolves when book content is present and not loading", async () => {
-    const div = document.createElement("div");
-    div.id = "book-content";
+  it('resolves when book content is present and not loading', async () => {
+    const div = document.createElement('div');
+    div.id = 'book-content';
     document.body.appendChild(div);
 
     await expect(waitForBookContent(500)).resolves.toBe(div);
   });
 
-  it("waits until loading spinner container is gone (realistic DOM from file, async removal)", async () => {
+  it('waits until loading spinner container is gone (realistic DOM from file, async removal)', async () => {
     // Load the spinner DOM from testdata file
-    const fs = await import("fs");
-    const path = await import("path");
+    const fs = await import('fs');
+    const path = await import('path');
     const html = fs.readFileSync(
-      path.resolve(__dirname, "__testdata__", "oreilly-spinner-book-content.html"),
-      "utf8"
+      path.resolve(__dirname, '__testdata__', 'oreilly-spinner-book-content.html'),
+      'utf8',
     );
     document.body.innerHTML = html;
-    const bookContent = document.getElementById("book-content");
+    const bookContent = document.getElementById('book-content');
     // Remove the spinner container after 1 second (simulate async loading)
     setTimeout(() => {
-      const spinner = bookContent?.querySelector(".orm-ChapterReader-loadContainer");
+      const spinner = bookContent?.querySelector('.orm-ChapterReader-loadContainer');
       if (spinner && spinner.parentElement) {
         spinner.parentElement.removeChild(spinner);
       }
@@ -47,7 +47,7 @@ describe("waitForBookContent", () => {
     expect(elapsed).toBeLessThan(2000); // should not take too long
   });
 
-  it("rejects if book content never appears", async () => {
-    await expect(waitForBookContent(300)).rejects.toThrow("Book content did not load in time.");
+  it('rejects if book content never appears', async () => {
+    await expect(waitForBookContent(300)).rejects.toThrow('Book content did not load in time.');
   });
 });

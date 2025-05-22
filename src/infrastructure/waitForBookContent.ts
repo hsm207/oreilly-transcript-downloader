@@ -6,7 +6,7 @@
 export function waitForBookContent(timeoutMs = 5000): Promise<HTMLElement> {
   return new Promise((resolve, reject) => {
     const check = () => {
-      const bookContent = document.getElementById("book-content");
+      const bookContent = document.getElementById('book-content');
       const isLoading =
         bookContent &&
         bookContent.querySelector('[data-testid="loadingODot"], .orm-ChapterReader-loadContainer');
@@ -20,7 +20,7 @@ export function waitForBookContent(timeoutMs = 5000): Promise<HTMLElement> {
     const interval = setInterval(check, 100);
     const timeout = setTimeout(() => {
       clearInterval(interval);
-      reject(new Error("Book content did not load in time."));
+      reject(new Error('Book content did not load in time.'));
     }, timeoutMs);
 
     check(); // Check immediately in case it's already loaded
