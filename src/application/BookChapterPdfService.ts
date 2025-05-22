@@ -1,10 +1,9 @@
-
 /**
  * BookChapterPdfService coordinates extraction and PDF generation for book chapters.
  */
-import { BookChapterExtractor } from "../domain/extraction/BookChapterExtractor";
-import { PdfGenerator } from "../infrastructure/PdfGenerator";
-import { PersistentLogger } from "../infrastructure/logging/PersistentLogger";
+import { BookChapterExtractor } from '../domain/extraction/BookChapterExtractor';
+import { PdfGenerator } from '../infrastructure/PdfGenerator';
+import { PersistentLogger } from '../infrastructure/logging/PersistentLogger';
 
 export class BookChapterPdfService {
   private extractor: BookChapterExtractor;
@@ -19,7 +18,7 @@ export class BookChapterPdfService {
   constructor(
     extractor: BookChapterExtractor,
     pdfGenerator: PdfGenerator,
-    logger: PersistentLogger = PersistentLogger.instance
+    logger: PersistentLogger = PersistentLogger.instance,
   ) {
     this.extractor = extractor;
     this.pdfGenerator = pdfGenerator;
@@ -32,12 +31,12 @@ export class BookChapterPdfService {
    * @throws Error if #book-content is not found
    */
   async downloadCurrentChapterAsPdf(filename: string): Promise<void> {
-    const root = document.getElementById("book-content");
+    const root = document.getElementById('book-content');
     if (!root) {
-      await this.logger.error("#book-content not found. Cannot generate PDF.");
-      throw new Error("#book-content not found");
+      await this.logger.error('#book-content not found. Cannot generate PDF.');
+      throw new Error('#book-content not found');
     }
-    await this.logger.info("Extracting chapter content for PDF...");
+    await this.logger.info('Extracting chapter content for PDF...');
     const elements = this.extractor.extract(root);
     await this.logger.info(`Extracted ${elements.length} elements. Generating PDF...`);
     await this.pdfGenerator.generateAndDownload(elements, filename, this.logger);

@@ -7,6 +7,7 @@ import {
   requestTranscriptDownload,
   requestAllTranscriptsDownload,
   requestChapterPdfDownload,
+  requestAllChaptersPdfDownload,
 } from '../application/PopupService';
 
 export const Popup = () => {
@@ -52,13 +53,22 @@ export const Popup = () => {
         </>
       )}
       {isBookPage && (
-        <button
-          className={styles.downloadButton}
-          style={{ marginTop: 12, background: '#e63946', color: '#fff' }}
-          onClick={requestChapterPdfDownload}
-        >
-          Download Chapter as PDF
-        </button>
+        <>
+          <button
+            className={styles.downloadButton}
+            style={{ marginTop: 12, background: '#e63946', color: '#fff' }}
+            onClick={requestChapterPdfDownload}
+          >
+            Download Chapter as PDF
+          </button>
+          <button
+            className={styles.downloadButton}
+            style={{ marginTop: 12, background: '#457b9d', color: '#fff' }}
+            onClick={requestAllChaptersPdfDownload}
+          >
+            Download All Chapters as PDF
+          </button>
+        </>
       )}
       {!isVideoPage && !isBookPage && (
         <div style={{ textAlign: 'center', color: '#ffb199', fontWeight: 500 }}>

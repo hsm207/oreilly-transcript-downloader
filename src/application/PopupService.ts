@@ -1,3 +1,25 @@
+// Application: PopupService
+// Service for handling popup-related application logic.
+
+import { isOReillyVideoPage } from '../domain/content/ContentDetector';
+/**
+ * Sends a message to the content script of the active tab to initiate download of all chapters as PDFs.
+ */
+export function requestAllChaptersPdfDownload(): void {
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+      const tabId = tabs[0]?.id;
+      if (tabId) {
+        chrome.tabs.sendMessage(tabId, { action: 'DOWNLOAD_ALL_CHAPTERS_PDF' });
+        console.log('DOWNLOAD_ALL_CHAPTERS_PDF message sent to tab:', tabId);
+      } else {
+        console.warn('No active tab found to send DOWNLOAD_ALL_CHAPTERS_PDF message.');
+      }
+    });
+  } else {
+    console.warn('chrome.tabs API not available for sending message.');
+  }
+}
 /**
  * Sends a message to the content script of the active tab to initiate chapter PDF download.
  */
@@ -16,10 +38,6 @@ export function requestChapterPdfDownload(): void {
     console.warn('chrome.tabs API not available for sending message.');
   }
 }
-// Application: PopupService
-// Service for handling popup-related application logic.
-
-import { isOReillyVideoPage } from '../domain/content/ContentDetector';
 
 /**
  * Sends a message to the content script of the active tab to initiate download of all transcripts in the module.
