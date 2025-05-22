@@ -1,20 +1,11 @@
-import { TableExtractor } from './TableExtractor';
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { PersistentLogger } from '../../../infrastructure/logging/PersistentLogger';
-
-// Only mock the logger - it has side effects we don't want in tests
-vi.mock('../../../infrastructure/logging/PersistentLogger', () => ({
-  PersistentLogger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+import { TableExtractor } from "./TableExtractor";
+import { PersistentLogger } from "../../../infrastructure/logging/PersistentLogger";
+import { describe, it, expect, afterEach } from "vitest";
 
 describe('TableExtractor', () => {
+
   afterEach(() => {
-    vi.clearAllMocks();
+    // No global mocks to clear in the instance-based approach
   });
 
   function createTable(html: string): HTMLElement {
@@ -23,7 +14,17 @@ describe('TableExtractor', () => {
     return div.querySelector('table') as HTMLElement;
   }
 
-  it('extracts a simple table with header and body', () => {
+  // Mock logger instance with no-op methods
+  class MockLogger extends PersistentLogger {
+    setFormat(format: string): void {}
+    async log(message: string, level: string = "log"): Promise<void> {}
+    async info(message: string): Promise<void> {}
+    async warn(message: string): Promise<void> {}
+    async error(message: string): Promise<void> {}
+    async debug(message: string): Promise<void> {}
+  }
+
+  it("extracts a simple table with header and body", () => {
     const table = createTable(`
       <table>
         <caption>Sample Table</caption>
@@ -36,12 +37,8 @@ describe('TableExtractor', () => {
         </tbody>
       </table>
     `);
-    const result = TableExtractor.extract(table);
-
-    // Only verify logger interactions
-    expect(PersistentLogger.debug).toHaveBeenCalled();
-    expect(PersistentLogger.info).toHaveBeenCalled();
-
+    const extractor = new TableExtractor(new MockLogger());
+    const result = extractor.extract(table);
     expect(result.type).toBe('table');
     expect((result as any).caption).toBe('Sample Table');
     expect((result as any).rows.length).toBe(3);
@@ -51,21 +48,21 @@ describe('TableExtractor', () => {
     expect((result as any).rows[1].cells[0].isHeader).toBe(false);
   });
 
-  it('extracts a table without caption', () => {
+  it("extracts a table without caption", () => {
     const table = createTable(`
       <table>
         <tr><td>A</td><td>B</td></tr>
       </table>
     `);
-    const result = TableExtractor.extract(table);
-
+    const extractor = new TableExtractor(new MockLogger());
+    const result = extractor.extract(table);
     expect(result.type).toBe('table');
     expect((result as any).caption).toBeUndefined();
     expect((result as any).rows.length).toBe(1);
     expect((result as any).rows[0].cells[0].content).toBe('A');
   });
 
-  it('handles colspan and rowspan', () => {
+  it("handles colspan and rowspan", () => {
     const table = createTable(`
       <table>
         <tr><th colspan='2'>Header</th></tr>
@@ -73,17 +70,16 @@ describe('TableExtractor', () => {
         <tr><td>C</td></tr>
       </table>
     `);
-    const result = TableExtractor.extract(table);
-
+    const extractor = new TableExtractor(new MockLogger());
+    const result = extractor.extract(table);
     expect((result as any).rows[0].cells[0].colspan).toBe(2);
     expect((result as any).rows[1].cells[0].rowspan).toBe(2);
   });
 
-  it('returns empty rows for empty table', () => {
+  it("returns empty rows for empty table", () => {
     const table = createTable(`<table></table>`);
-    const result = TableExtractor.extract(table);
-
-    expect(PersistentLogger.info).toHaveBeenCalled();
+    const extractor = new TableExtractor(new MockLogger());
+    const result = extractor.extract(table);
     expect(result.type).toBe('table');
     expect((result as any).rows.length).toBe(0);
   });

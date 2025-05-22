@@ -7,13 +7,18 @@ import { TextNormalizer } from './TextNormalizer';
  * It is designed to be pure and stateless.
  */
 export class TableExtractor {
+  private logger: PersistentLogger;
+
+  constructor(logger: PersistentLogger = PersistentLogger.instance) {
+    this.logger = logger;
+  }
   /**
    * Extracts content from table elements, handling captions, headers, and data cells.
    * @param tableElement The HTML table element to process
    * @returns A BookChapterElement of type 'table'
    */
-  public static extract(tableElement: HTMLElement): BookChapterElement {
-    PersistentLogger.debug?.('Processing table element');
+  public extract(tableElement: HTMLElement): BookChapterElement {
+    this.logger?.debug?.('Processing table element');
 
     // Extract table rows and cells
     const rows: {
@@ -25,7 +30,7 @@ export class TableExtractor {
     const captionElem = tableElement.querySelector('caption');
     if (captionElem && captionElem.textContent) {
       caption = TextNormalizer.normalizeText(captionElem.textContent);
-      PersistentLogger.debug?.(`Found table caption: "${caption}"`);
+      this.logger?.debug?.(`Found table caption: "${caption}"`);
     }
 
     // Process rows - first handle any rows in <thead> if present
@@ -52,10 +57,10 @@ export class TableExtractor {
     });
 
     if (caption) {
-      PersistentLogger.info?.(`Extracted table with caption and ${rows.length} rows`);
+      this.logger?.info?.(`Extracted table with caption and ${rows.length} rows`);
       return { type: 'table', rows, caption };
     } else {
-      PersistentLogger.info?.(`Extracted table with ${rows.length} rows`);
+      this.logger?.info?.(`Extracted table with ${rows.length} rows`);
       return { type: 'table', rows };
     }
   }
