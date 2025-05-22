@@ -1,5 +1,4 @@
 import { BookChapterPdfService } from './application/BookChapterPdfService';
-// Content Script: Listens for transcript download requests and triggers extraction and download
 import { TranscriptDownloadStateRepository } from './infrastructure/TranscriptDownloadStateRepository';
 import { DefaultTocExtractor } from './domain/extraction/TocExtractor';
 import { waitForElement } from './infrastructure/DomUtils';
@@ -8,6 +7,23 @@ import { downloadFile } from './domain/download/FileDownloader';
 import { TranscriptToggler } from './domain/transcript/TranscriptToggler';
 import { TocToggler } from './domain/toc/TocToggler';
 import { AllTranscriptDownloadService } from './application/AllTranscriptDownloadService';
+import { AllChapterPdfDownloadService } from './application/AllChapterPdfDownloadService';
+import { BookChapterDownloadStateRepository } from './infrastructure/BookChapterDownloadStateRepository';
+import { PersistentLogger } from './infrastructure/logging/PersistentLogger';
+import { BookChapterExtractor } from './domain/extraction/BookChapterExtractor';
+import { PdfGenerator } from './infrastructure/PdfGenerator';
+
+// Compose dependencies for AllChapterPdfDownloadService
+const allChapterPdfDownloadService = new AllChapterPdfDownloadService(
+  new DefaultTocExtractor(),
+  new BookChapterDownloadStateRepository(),
+  new BookChapterPdfService(
+    new BookChapterExtractor(PersistentLogger.instance),
+    new PdfGenerator(),
+    PersistentLogger.instance,
+  ),
+  PersistentLogger.instance,
+);
 
 // On every page load, check if transcript download state exists and resume download using the application service
 const transcriptDownloadStateRepo = new TranscriptDownloadStateRepository();
@@ -77,6 +93,10 @@ chrome.runtime.onMessage.addListener(async (message) => {
     await handleDownloadTranscript();
     return;
   }
+  if (message.action === 'DOWNLOAD_ALL_CHAPTERS_PDF') {
+    await allChapterPdfDownloadService.startDownloadAllChapters();
+    return;
+  }
   if (message.action === 'DOWNLOAD_CHAPTER_PDF') {
     // Use chapter title or fallback
     const bookContent = document.getElementById('book-content');
@@ -86,7 +106,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
       if (h1 && h1.textContent) {
         filename = h1.textContent.trim().replace(/\s+/g, '_') + '.pdf';
       }
-      await BookChapterPdfService.downloadCurrentChapterAsPdf(filename);
+      const bookChapterPdfService = new BookChapterPdfService(
+        new BookChapterExtractor(PersistentLogger.instance),
+        new PdfGenerator(),
+        PersistentLogger.instance,
+      );
+      await bookChapterPdfService.downloadCurrentChapterAsPdf(filename);
     } else {
       alert('No book content found on this page.');
     }

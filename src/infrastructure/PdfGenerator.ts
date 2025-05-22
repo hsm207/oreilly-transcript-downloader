@@ -360,7 +360,7 @@ export class PdfGenerator {
 
     // Check if table needs to start on a new page
     if (y + rowHeights.reduce((sum, height) => sum + height, 0) > pageHeight - bottomMargin) {
-      logger?.info?.("Table too tall for current page, adding new page");
+      logger?.info?.('Table too tall for current page, adding new page');
       doc.addPage();
       y = 20; // topMargin
 
