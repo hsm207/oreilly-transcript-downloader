@@ -16,7 +16,10 @@ describe('DefaultTocExtractor', () => {
 
   it('should correctly extract toc from a book content', () => {
     // Read the sample TOC HTML file (book)
-    const html = fs.readFileSync(path.join(__dirname, '__testdata__', 'sample-toc-book.html'), 'utf-8');
+    const html = fs.readFileSync(
+      path.join(__dirname, '__testdata__', 'sample-toc-book.html'),
+      'utf-8',
+    );
     const container = document.createElement('div');
     container.innerHTML = html;
     const tocRoot = container.querySelector('ol[data-testid="tocItems"]') as HTMLElement;
@@ -67,7 +70,10 @@ describe('DefaultTocExtractor', () => {
 
   it('should extract all links from a real TOC HTML file', () => {
     // Read the sample TOC HTML file (video course)
-    const html = fs.readFileSync(path.join(__dirname, '__testdata__', 'sample-toc-video-course.html'), 'utf-8');
+    const html = fs.readFileSync(
+      path.join(__dirname, '__testdata__', 'sample-toc-video-course.html'),
+      'utf-8',
+    );
     const container = document.createElement('div');
     container.innerHTML = html;
     const tocRoot = container.querySelector('ol[data-testid="tocItems"]') as HTMLElement;

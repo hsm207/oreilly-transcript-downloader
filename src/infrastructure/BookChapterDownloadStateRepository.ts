@@ -23,17 +23,14 @@ export interface BookChapterDownloadState {
  * @public
  */
 export class BookChapterDownloadStateRepository {
-  private static readonly KEY = "oreilly_book_chapter_download_state";
+  private static readonly KEY = 'oreilly_book_chapter_download_state';
 
   /**
    * Saves the current download state.
    * @param state - The state to save.
    */
   save(state: BookChapterDownloadState): void {
-    localStorage.setItem(
-      BookChapterDownloadStateRepository.KEY,
-      JSON.stringify(state)
-    );
+    localStorage.setItem(BookChapterDownloadStateRepository.KEY, JSON.stringify(state));
   }
 
   /**
