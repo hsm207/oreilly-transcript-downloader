@@ -48,6 +48,7 @@ export class BookChapterExtractor {
    */
   private processNode(node: Node, elements: BookChapterElement[]): void {
     if (node.nodeType !== Node.ELEMENT_NODE) {
+      // Pass to processTextNode but we know it won't do anything with these parameters
       this.processTextNode(node, elements);
       return;
     }
@@ -279,9 +280,25 @@ export class BookChapterExtractor {
     }
   }
 
-  private processTextNode(node: Node, elements: BookChapterElement[]): void {
-    // Intentionally left blank: see comments in original code.
-    // Text nodes are handled by their parent block elements.
+  /**
+   * Processes a text node in the DOM tree.
+   * This method is intentionally empty because we don't process text nodes individually.
+   * Instead, each text node is processed within its parent element (like paragraph, heading, list item)
+   * where it has proper semantic context.
+   *
+   * For example, when processing a <p> tag, we get all its text content using cleanNodeText(),
+   * which combines all text nodes inside it and applies proper formatting.
+   *
+   * @param node The text node to process
+   * @param elements The array of book chapter elements being built
+   */
+  private processTextNode(_node: Node, _elements: BookChapterElement[]): void {
+    // This method is intentionally empty.
+    // Text nodes are handled by their parent elements in methods like:
+    // - processHeading()
+    // - processParagraphOrCaption()
+    // - processList()
+    // This approach preserves document structure and semantic meaning.
   }
 
   /**
