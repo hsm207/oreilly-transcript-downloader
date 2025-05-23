@@ -76,7 +76,8 @@ describe('PdfGenerator Integration Test', () => {
     if (!fs.existsSync(testfilesDir)) fs.mkdirSync(testfilesDir, { recursive: true });
     // Act: Generate the PDF
     const logger2 = new MockLogger();
-    await PdfGenerator.generateAndDownload(elements, PDF_FILES.simple.generated, logger2 as any);
+    const pdfGen = new PdfGenerator();
+    await pdfGen.generateAndDownload(elements, PDF_FILES.simple.generated, logger2 as any);
     expect(fs.existsSync(PDF_FILES.simple.generated)).toBe(true);
     const generatedBuffer = fs.readFileSync(PDF_FILES.simple.generated);
     expect(generatedBuffer.length).toBeGreaterThan(1000);
@@ -103,7 +104,8 @@ describe('PdfGenerator Integration Test', () => {
     if (!fs.existsSync(testfilesDir)) fs.mkdirSync(testfilesDir, { recursive: true });
     // Act: Generate the PDF
     const logger4 = new MockLogger();
-    await PdfGenerator.generateAndDownload(elements, PDF_FILES.table.generated, logger4 as any);
+    const pdfGen = new PdfGenerator();
+    await pdfGen.generateAndDownload(elements, PDF_FILES.table.generated, logger4 as any);
     // Assert: Logger calls and file existence
     expect(fs.existsSync(PDF_FILES.table.generated)).toBe(true);
     const generatedBuffer = fs.readFileSync(PDF_FILES.table.generated);

@@ -1,8 +1,12 @@
 import { TableExtractor } from './TableExtractor';
 import { PersistentLogger } from '../../../infrastructure/logging/PersistentLogger';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 
 describe('TableExtractor', () => {
+  afterEach(() => {
+    // No global mocks to clear in the instance-based approach
+  });
+
   function createTable(html: string): HTMLElement {
     const div = document.createElement('div');
     div.innerHTML = html.trim();
