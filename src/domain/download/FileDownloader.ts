@@ -7,7 +7,7 @@ import { PersistentLogger } from '../../infrastructure/logging/PersistentLogger'
  * @param content The content of the file.
  */
 export async function downloadFile(filename: string, content: string) {
-  await PersistentLogger.log(`Downloading file: ${filename}`);
+  await PersistentLogger.instance.log(`Downloading file: ${filename}`);
   const blob = new Blob([content], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
