@@ -29,12 +29,12 @@ allChapterPdfDownloadService.resumeDownloadIfNeeded();
 
 // On every page load, check if transcript download state exists and resume download using the application service
 const transcriptDownloadStateRepo = new TranscriptDownloadStateRepository();
-const transcriptEnsurerInstance = new TranscriptToggler();
+const transcriptEnsurerInstance = new TranscriptToggler(PersistentLogger.instance);
 const tocEnsurerInstance = new TocToggler();
 
 const allTranscriptDownloadService = new AllTranscriptDownloadService(
   new DefaultTocExtractor(),
-  extractTranscript,
+  (el) => extractTranscript(el, PersistentLogger.instance),
   { downloadFile },
   waitForElement,
   transcriptEnsurerInstance,
@@ -42,6 +42,7 @@ const allTranscriptDownloadService = new AllTranscriptDownloadService(
     window.location.href = url;
   },
   tocEnsurerInstance,
+  PersistentLogger.instance,
 );
 
 allTranscriptDownloadService.resumeDownloadAllTranscriptsIfNeeded(
