@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { extractTranscript } from './TranscriptExtractor';
 import fs from 'fs';
 import path from 'path';
@@ -11,6 +11,15 @@ function createTranscriptElement(html: string): HTMLElement {
 }
 
 const testDataDir = path.resolve(__dirname, '__testdata__');
+
+beforeAll(() => {
+  // Mock chrome.runtime.sendMessage for PersistentLogger
+  global.chrome = {
+    runtime: {
+      sendMessage: vi.fn(),
+    },
+  } as any;
+});
 
 describe('extractTranscript', () => {
   it('should extract plain text from a sample transcript DOM (from file)', () => {

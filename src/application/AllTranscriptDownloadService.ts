@@ -3,6 +3,7 @@ import { TocExtractor } from '../domain/extraction/TocExtractor';
 import { TableOfContentsItem } from '../domain/models/TableOfContentsItem';
 import { waitForElement } from '../infrastructure/DomUtils';
 import { IToggler } from '../domain/common/IToggler'; // Import IToggler
+import { PersistentLogger } from '../infrastructure/logging/PersistentLogger';
 
 /**
  * Service to orchestrate downloading all transcripts for modules/videos listed in the TOC.
@@ -25,6 +26,7 @@ export class AllTranscriptDownloadService {
   private transcriptEnsurer: IToggler; // Renamed and type changed
   private navigate: (url: string) => Promise<void>;
   private tocEnsurer: IToggler;
+  private logger: PersistentLogger;
 
   constructor(
     tocExtractor: TocExtractor,
@@ -34,6 +36,7 @@ export class AllTranscriptDownloadService {
     transcriptEnsurer: IToggler, // Updated parameter name and type
     navigate: (url: string) => Promise<void>,
     tocEnsurer: IToggler,
+    logger: PersistentLogger = PersistentLogger.instance,
   ) {
     this.tocExtractor = tocExtractor;
     this.extractTranscript = extractTranscript;
@@ -42,6 +45,7 @@ export class AllTranscriptDownloadService {
     this.transcriptEnsurer = transcriptEnsurer; // Updated assignment
     this.navigate = navigate;
     this.tocEnsurer = tocEnsurer;
+    this.logger = logger;
   }
 
   /**
@@ -53,15 +57,20 @@ export class AllTranscriptDownloadService {
    */
   async downloadSingleTranscript(onError: (error: unknown) => void): Promise<void> {
     try {
+      await this.logger.info('Starting single transcript download');
       const result = await this.extractAndDownloadTranscript({
         filename: this.getSafePageTitle() + '.txt',
         logPrefix: '[DOWNLOAD_TRANSCRIPT]',
         onError,
       });
       if (!result.success && result.error) {
+        await this.logger.warn(`Transcript download failed: ${result.error}`);
         onError(result.error);
+      } else {
+        await this.logger.info('Transcript downloaded successfully');
       }
     } catch (error) {
+      await this.logger.error(`Transcript download error: ${error}`);
       onError(error);
     }
   }
@@ -86,16 +95,18 @@ export class AllTranscriptDownloadService {
     const TRANSCRIPT_TOGGLE_BUTTON_SELECTOR = '[data-testid="transcript-toggle"]';
     const TRANSCRIPT_CONTAINER_SELECTOR = '[data-testid="transcript-body"]';
     try {
+      await this.logger.debug(`${logPrefix} Waiting for transcript toggle button`);
       const transcriptToggleButton = await this.waitForElement(
         TRANSCRIPT_TOGGLE_BUTTON_SELECTOR,
         10000,
       );
       if (!transcriptToggleButton || !(transcriptToggleButton instanceof HTMLElement)) {
         const err = 'Transcript toggle button not found. This video may not have a transcript.';
+        await this.logger.warn(`${logPrefix} ${err}`);
         if (onError) onError(err);
         return { success: false, error: err };
       }
-
+      await this.logger.debug(`${logPrefix} Ensuring transcript content is visible`);
       const transcriptBodyElement = await this.transcriptEnsurer.ensureContentVisible(
         transcriptToggleButton,
         TRANSCRIPT_CONTAINER_SELECTOR,
@@ -103,20 +114,24 @@ export class AllTranscriptDownloadService {
       if (!transcriptBodyElement || !(transcriptBodyElement instanceof HTMLElement)) {
         const err =
           'Transcript body did not appear or is not a valid element. Please try again or check if the video has a transcript.';
+        await this.logger.warn(`${logPrefix} ${err}`);
         if (onError) onError(err);
         return { success: false, error: err };
       }
-
+      await this.logger.debug(`${logPrefix} Extracting transcript text`);
       const transcript = this.extractTranscript(transcriptBodyElement);
       if (transcript && transcript.trim().length > 0) {
+        await this.logger.info(`${logPrefix} Downloading transcript as file: ${filename}`);
         this.fileDownloader.downloadFile(filename, transcript);
         return { success: true };
       } else {
         const err = 'No transcript content found on this page.';
+        await this.logger.warn(`${logPrefix} ${err}`);
         if (onError) onError(err);
         return { success: false, error: err };
       }
     } catch (error) {
+      await this.logger.error(`${logPrefix} Error during transcript extraction/download: ${error}`);
       if (onError) onError(error);
       return { success: false, error: String(error) };
     }
@@ -145,11 +160,12 @@ export class AllTranscriptDownloadService {
   ): Promise<void> {
     const TOC_TOGGLE_BUTTON_SELECTOR = '[data-testid="table-of-contents-button"]';
     const TOC_CONTAINER_SELECTOR = 'ol[data-testid="tocItems"]';
-
     try {
+      await this.logger.info('Starting download of all transcripts');
       // Find the TOC toggle button
       const tocToggleButtonElement = await this.waitForElement(TOC_TOGGLE_BUTTON_SELECTOR, 5000);
       if (!tocToggleButtonElement || !(tocToggleButtonElement instanceof HTMLElement)) {
+        await this.logger.warn(`TOC toggle button not found: ${TOC_TOGGLE_BUTTON_SELECTOR}`);
         onError(
           `Table of Contents toggle button ('${TOC_TOGGLE_BUTTON_SELECTOR}') not found. Please ensure the TOC panel can be opened.`,
         );
@@ -160,27 +176,30 @@ export class AllTranscriptDownloadService {
         tocToggleButtonElement,
         TOC_CONTAINER_SELECTOR,
       );
-
       if (!tocRootEl || !(tocRootEl instanceof HTMLElement)) {
+        await this.logger.warn(`TOC container not found: ${TOC_CONTAINER_SELECTOR}`);
         onError(
           `Table of Contents container ('${TOC_CONTAINER_SELECTOR}') not found even after attempting to toggle. Please open the TOC manually and try again.`,
         );
         return;
       }
-
       const tocItems = this.tocExtractor.extractItems(tocRootEl);
       if (!tocItems.length) {
+        await this.logger.warn('No modules found in the Table of Contents.');
         onError('No modules found in the Table of Contents.');
         return;
       }
       stateRepo.save({ tocItems, currentIndex: 0 });
       if (tocItems[0] && tocItems[0].href) {
+        await this.logger.info(`Navigating to first transcript: ${tocItems[0].href}`);
         await this.navigate(tocItems[0].href);
       } else {
+        await this.logger.warn('First item in Table of Contents has no valid link.');
         onError('First item in Table of Contents has no valid link.');
         stateRepo.clear();
       }
     } catch (error) {
+      await this.logger.error(`Error starting all transcript download: ${error}`);
       onError(error);
       stateRepo.clear();
     }
@@ -209,8 +228,7 @@ export class AllTranscriptDownloadService {
 
     try {
       const result = await this.processCurrentTranscript(allDownloadState, (info) => {
-        // eslint-disable-next-line no-console
-        console.log(
+        this.logger.info(
           `[AllTranscriptDownloadService] Processing: ${info.title} (${info.current}/${info.total})`,
         );
       });
@@ -227,10 +245,12 @@ export class AllTranscriptDownloadService {
       }
       if (result === 'error') {
         stateRepo.clear();
+        this.logger.error('Download stopped due to error.');
         onError(new Error('Download stopped.'), tocItems[currentIndex].title);
       }
     } catch (error) {
       stateRepo.clear();
+      this.logger.error(`Error resuming transcript downloads: ${error}`);
       onError(error, tocItems[currentIndex].title);
     }
   }
@@ -264,12 +284,14 @@ export class AllTranscriptDownloadService {
         logPrefix: `[AllTranscriptDownloadService: ${item.title}]`,
       });
       if (!result.success) {
+        this.logger.warn(`Transcript skipped: ${item.title}`);
         return 'skipped';
       }
+      this.logger.info(`Transcript downloaded: ${item.title}`);
       await new Promise((res) => setTimeout(res, downloadDelayMs));
       return 'done';
     } catch (error) {
-      // Error during processing
+      this.logger.error(`Error processing transcript: ${item.title}: ${error}`);
       return 'error';
     }
   }

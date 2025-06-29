@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { AllTranscriptDownloadService } from './AllTranscriptDownloadService';
 import { TocExtractor } from '../domain/extraction/TocExtractor';
+import { IToggler } from '../domain/common/IToggler';
 
 describe('AllTranscriptDownloadService', () => {
   // Mock dependencies
@@ -8,16 +9,17 @@ describe('AllTranscriptDownloadService', () => {
   let mockExtractTranscript: (el: HTMLElement) => string;
   let mockFileDownloader: { downloadFile: (filename: string, content: string) => void };
   let mockWaitForElement: (selector: string, timeout?: number) => Promise<Element | null>;
-  let mockTranscriptEnsurer: {
-    ensureContentVisible: (el: HTMLElement, selector: string) => Promise<void>;
-  };
+  let mockTranscriptEnsurer: IToggler;
 
   let mockNavigate: (url: string) => Promise<void>;
-  let service: AllTranscriptDownloadService;
   let mockTocEnsurer: {
     ensureContentVisible: (el: HTMLElement, selector: string) => Promise<void>;
   };
   let mockOnError: (error: unknown) => void;
+  let mockLogger: any;
+
+  // Ensure 'service' is declared before use
+  let service: AllTranscriptDownloadService;
 
   // Mock HTML Element
   const createMockElement = () => {
@@ -25,35 +27,55 @@ describe('AllTranscriptDownloadService', () => {
     return element;
   };
 
+  beforeAll(() => {
+    // Mock chrome.runtime.sendMessage for PersistentLogger
+    global.chrome = {
+      runtime: {
+        sendMessage: vi.fn(),
+      },
+    } as any;
+  });
+
   beforeEach(() => {
     // Setup mocks
     mockTocExtractor = { extractItems: vi.fn() } as unknown as TocExtractor;
-    mockExtractTranscript = vi.fn().mockReturnValue('Mock transcript content');
+    // Use a synchronous mock for extractTranscript to match the expected type
+    mockExtractTranscript = vi.fn((el: HTMLElement) => 'Test transcript');
     mockFileDownloader = { downloadFile: vi.fn() };
     mockWaitForElement = vi.fn().mockResolvedValue(createMockElement());
+    // IToggler mock must return Promise<Element>
     mockTranscriptEnsurer = {
-      ensureContentVisible: vi.fn().mockResolvedValue(createMockElement()),
-    };
+      ensureContentVisible: vi.fn(async (el: HTMLElement, selector: string): Promise<Element> => {
+        // Simulate visibility logic
+        return el;
+      }),
+    } as IToggler;
     mockNavigate = vi.fn().mockResolvedValue(undefined);
-
     mockOnError = vi.fn();
     mockTocEnsurer = { ensureContentVisible: vi.fn().mockResolvedValue(createMockElement()) };
-
+    // Use async mock functions for logger methods
+    mockLogger = {
+      info: vi.fn(async () => {}),
+      warn: vi.fn(async () => {}),
+      error: vi.fn(async () => {}),
+      debug: vi.fn(async () => {}),
+      log: vi.fn(async () => {}),
+    };
     // Mock document.title for getSafePageTitle
     Object.defineProperty(document, 'title', {
       value: 'Test Video Title',
       writable: true,
     });
-
     // Create service instance with mocks
     service = new AllTranscriptDownloadService(
-      mockTocExtractor,
-      mockExtractTranscript,
-      mockFileDownloader,
-      mockWaitForElement,
-      mockTranscriptEnsurer,
-      mockNavigate,
-      mockTocEnsurer,
+      mockTocExtractor, // TocExtractor
+      mockExtractTranscript, // (el: HTMLElement) => string
+      mockFileDownloader, // { downloadFile: ... }
+      mockWaitForElement, // (selector: string, timeout?: number) => Promise<Element | null>
+      mockTranscriptEnsurer, // IToggler (ensureContentVisible returns Promise<Element>)
+      vi.fn(async (url: string) => {}), // navigate
+      {} as any, // tocEnsurer (mocked as any)
+      mockLogger, // PersistentLogger
     );
   });
 
@@ -68,7 +90,7 @@ describe('AllTranscriptDownloadService', () => {
       expect(mockExtractTranscript).toHaveBeenCalled();
       expect(mockFileDownloader.downloadFile).toHaveBeenCalledWith(
         'Test_Video_Title.txt',
-        'Mock transcript content',
+        'Test transcript',
       );
       expect(mockOnError).not.toHaveBeenCalled();
     });
