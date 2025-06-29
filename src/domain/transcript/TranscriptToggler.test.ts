@@ -15,6 +15,16 @@ afterAll(() => {
   process.removeAllListeners('unhandledRejection');
 });
 
+// Mock chrome.runtime.sendMessage for PersistentLogger
+beforeAll(() => {
+  // Mock chrome.runtime.sendMessage for PersistentLogger
+  global.chrome = {
+    runtime: {
+      sendMessage: vi.fn(),
+    },
+  } as any;
+});
+
 // Constants from TranscriptToggler for testing purposes
 const CONTENT_LOAD_TIMEOUT_MS = 10000;
 const CONTENT_POLL_INTERVAL_MS = 500;
@@ -66,7 +76,7 @@ describe('TranscriptToggler', () => {
     const divElement = document.createElement('div');
 
     // Create a variable to hold the caught error
-    let capturedError: Error | null = null;
+    let capturedError: Error | undefined;
 
     // Start the method call and immediately attach a catch handler to prevent unhandled rejection
     const promise = toggler
@@ -140,7 +150,7 @@ describe('TranscriptToggler', () => {
     (waitForElement as ReturnType<typeof vi.fn>).mockResolvedValue(null); // Simulate container not found
 
     // Create a variable to hold the caught error
-    let capturedError: Error | null = null;
+    let capturedError: Error | undefined;
 
     // Start the method call and immediately attach a catch handler to prevent unhandled rejection
     const promise = toggler
@@ -174,7 +184,7 @@ describe('TranscriptToggler', () => {
     (waitForElement as ReturnType<typeof vi.fn>).mockResolvedValue(null); // Simulate container not found
 
     // Create a variable to hold the caught error
-    let capturedError: Error | null = null;
+    let capturedError: Error | undefined;
 
     // Start the method call and immediately attach a catch handler to prevent unhandled rejection
     const promise = toggler
@@ -261,7 +271,7 @@ describe('TranscriptToggler', () => {
         .mockReturnValue(loaderElement);
 
       // Create a variable to hold the caught error
-      let capturedError: Error | null = null;
+      let capturedError: Error | undefined;
 
       // Start the method call and immediately attach a catch handler to prevent unhandled rejection
       const promise = toggler

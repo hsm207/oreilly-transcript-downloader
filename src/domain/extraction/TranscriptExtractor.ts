@@ -4,13 +4,17 @@
 // output: TranscriptLine[] (array of transcript line objects)
 
 import { TranscriptLine } from '../models/TranscriptLine';
+import { PersistentLogger } from '../../infrastructure/logging/PersistentLogger';
 
 const TRANSCRIPT_BODY_SELECTOR = '[data-testid="transcript-body"]';
 const TIME_SELECTOR = 'p.MuiTypography-uiBodySmall';
 const TEXT_SELECTOR = 'p.MuiTypography-uiBody';
 
 // Added more debug logging to help diagnose extraction issues
-export function extractTranscriptLines(transcriptRoot: HTMLElement): TranscriptLine[] {
+export function extractTranscriptLines(
+  transcriptRoot: HTMLElement,
+  logger: PersistentLogger = PersistentLogger.instance,
+): TranscriptLine[] {
   // Check if we're starting with the transcript body already or need to find it
   const body =
     TRANSCRIPT_BODY_SELECTOR === '[data-testid="transcript-body"]' &&
@@ -19,20 +23,19 @@ export function extractTranscriptLines(transcriptRoot: HTMLElement): TranscriptL
       : transcriptRoot.querySelector(TRANSCRIPT_BODY_SELECTOR);
 
   if (!body) {
-    console.warn(
-      '[extractTranscriptLines] No transcript body found with selector:',
-      TRANSCRIPT_BODY_SELECTOR,
+    logger.warn(
+      `[extractTranscriptLines] No transcript body found with selector: ${TRANSCRIPT_BODY_SELECTOR}`,
     );
     return [];
   }
 
-  console.log(
+  logger.debug(
     '[extractTranscriptLines] Found transcript body, looking for buttons with transcript lines',
   );
 
   const lines: TranscriptLine[] = [];
   const buttons = body.querySelectorAll('button');
-  console.log(`[extractTranscriptLines] Found ${buttons.length} buttons in transcript body`);
+  logger.debug(`[extractTranscriptLines] Found ${buttons.length} buttons in transcript body`);
 
   // If no buttons are found, throw an error (page layout likely changed)
   if (buttons.length === 0) {
@@ -50,10 +53,10 @@ export function extractTranscriptLines(transcriptRoot: HTMLElement): TranscriptL
     });
   }
 
-  console.log(`[extractTranscriptLines] Extracted ${lines.length} transcript lines`);
+  logger.debug(`[extractTranscriptLines] Extracted ${lines.length} transcript lines`);
   // Log a sample line for debugging
   if (lines.length > 0) {
-    console.log('[extractTranscriptLines] Sample line:', JSON.stringify(lines[0]));
+    logger.debug(`[extractTranscriptLines] Sample line: ${JSON.stringify(lines[0])}`);
   }
 
   return lines;
@@ -64,6 +67,9 @@ export function formatTranscript(lines: TranscriptLine[]): string {
 }
 
 // For backward compatibility: extract and format in one step
-export function extractTranscript(transcriptRoot: HTMLElement): string {
-  return formatTranscript(extractTranscriptLines(transcriptRoot));
+export function extractTranscript(
+  transcriptRoot: HTMLElement,
+  logger: PersistentLogger = PersistentLogger.instance,
+): string {
+  return formatTranscript(extractTranscriptLines(transcriptRoot, logger));
 }

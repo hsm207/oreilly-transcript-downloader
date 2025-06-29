@@ -1,5 +1,6 @@
 import { IToggler } from '../common/IToggler';
 import { waitForElement } from '../../infrastructure/DomUtils';
+import { PersistentLogger } from '../../infrastructure/logging/PersistentLogger';
 
 /**
  * Domain service for ensuring the transcript is visible on the video page.
@@ -19,10 +20,14 @@ export class TranscriptToggler implements IToggler {
    */
   private static readonly LOADER_SELECTOR = '[data-testid="loader-container"]';
 
+  private logger: PersistentLogger;
+
   /**
    * Constructs a TranscriptToggler.
    */
-  constructor() {}
+  constructor(logger: PersistentLogger = PersistentLogger.instance) {
+    this.logger = logger;
+  }
 
   /**
    * Waits for the content within the transcript container to load by checking for the absence of a loader element.
@@ -43,7 +48,7 @@ export class TranscriptToggler implements IToggler {
     let loader = transcriptContainer.querySelector(loaderSelector);
 
     if (loader) {
-      console.log(
+      await this.logger.info(
         `[TranscriptToggler] Loader ('${loaderSelector}') found. Waiting for content to load...`,
       );
       const startTime = Date.now();
@@ -51,17 +56,17 @@ export class TranscriptToggler implements IToggler {
       while (loader) {
         if (Date.now() - startTime > timeoutMs) {
           const errorMessage = `[TranscriptToggler] Content in transcript container did not load within ${timeoutMs / 1000}s (loader '${loaderSelector}' still present).`;
-          console.error(errorMessage);
+          await this.logger.error(errorMessage);
           throw new Error(errorMessage);
         }
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         loader = transcriptContainer.querySelector(loaderSelector);
       }
-      console.log(
+      await this.logger.info(
         `[TranscriptToggler] Loader ('${loaderSelector}') disappeared. Content is presumed loaded.`,
       );
     } else {
-      console.log(
+      await this.logger.info(
         `[TranscriptToggler] No loader ('${loaderSelector}') found. Content is presumed loaded or was already present.`,
       );
     }
@@ -88,10 +93,11 @@ export class TranscriptToggler implements IToggler {
       throw new Error('[TranscriptToggler] Provided toggleElement is not an HTMLButtonElement.');
     }
 
-    console.log('[TranscriptToggler] Received toggle button:', toggleButton);
-
+    await this.logger.debug(
+      `[TranscriptToggler] Received toggle button: ${toggleButton.outerHTML}`,
+    );
     const ariaLabel = toggleButton.getAttribute('aria-label');
-    console.log('[TranscriptToggler] Button aria-label:', ariaLabel);
+    await this.logger.debug(`[TranscriptToggler] Button aria-label: ${ariaLabel}`);
 
     let clicked = false;
     if (
@@ -99,12 +105,12 @@ export class TranscriptToggler implements IToggler {
       ariaLabel?.toLowerCase().includes('show') ||
       ariaLabel?.toLowerCase().includes('open')
     ) {
-      console.log('[TranscriptToggler] Clicking transcript button to show transcript.');
+      await this.logger.info('[TranscriptToggler] Clicking transcript button to show transcript.');
       toggleButton.click();
       clicked = true;
       await new Promise((resolve) => setTimeout(resolve, 200)); // UI transition delay
     } else {
-      console.log(
+      await this.logger.info(
         '[TranscriptToggler] Transcript toggle button indicates content may already be visible.',
       );
     }
@@ -118,10 +124,10 @@ export class TranscriptToggler implements IToggler {
           ? 'after clicking toggle'
           : 'even though toggle indicated visible';
         const errorMessage = `[TranscriptToggler] Transcript container ('${transcriptContainerSelector}') did not appear ${actionTaken}.`;
-        console.error(errorMessage);
+        await this.logger.error(errorMessage);
         throw new Error(errorMessage);
       }
-      console.log(
+      await this.logger.info(
         `[TranscriptToggler] Transcript container ('${transcriptContainerSelector}') found. Checking for content...`,
       );
     } catch (error) {
@@ -146,9 +152,6 @@ export class TranscriptToggler implements IToggler {
       TranscriptToggler.CONTENT_POLL_INTERVAL_MS,
     );
 
-    console.log(
-      `[TranscriptToggler] Transcript container ('${transcriptContainerSelector}') and its content are visible.`,
-    );
     return transcriptContainer;
   }
 }
