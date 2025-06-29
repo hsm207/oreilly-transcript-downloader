@@ -33,6 +33,7 @@ export class DefaultTocExtractor implements TocExtractor {
         title: link.textContent?.replace(/\s+/g, ' ').trim() ?? '',
         href: link.getAttribute('href') ?? '',
       }))
-      .filter((item) => item.title && item.href);
+      .filter((item) => item.title && item.href)
+      .filter((item) => item.title !== 'Practice Quiz' && item.title !== 'Final Quiz');
   }
 }
