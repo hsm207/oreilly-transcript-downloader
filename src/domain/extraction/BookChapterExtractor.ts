@@ -70,6 +70,7 @@ export class BookChapterExtractor {
 
     if (this.processHeading(htmlElement, tagName, elements)) return;
     if (this.processParagraphOrCaption(htmlElement, tagName, classList, elements)) return;
+    if (this.processPreformatted(htmlElement, tagName, elements)) return;
     if (this.processList(htmlElement, tagName, elements)) return;
     if (this.processTable(htmlElement, tagName, elements)) return;
     if (this.processImage(htmlElement, tagName, elements)) return;
@@ -243,6 +244,23 @@ export class BookChapterExtractor {
     const text = BookChapterExtractor.cleanNodeText(htmlElement);
     if (text) {
       elements.push({ type: 'paragraph', text });
+    }
+    return true;
+  }
+
+  private processPreformatted(
+    htmlElement: HTMLElement,
+    tagName: string,
+    elements: BookChapterElement[],
+  ): boolean {
+    if (tagName !== 'pre') return false;
+    let text = htmlElement.textContent || '';
+    text = TextNormalizer.normalizeText(text);
+    if (text) {
+      this.logger.debug(
+        `Adding preformatted block: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
+      );
+      elements.push({ type: 'preformatted', text });
     }
     return true;
   }
