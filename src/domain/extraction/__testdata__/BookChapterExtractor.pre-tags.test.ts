@@ -39,4 +39,24 @@ describe('BookChapterExtractor - pre-tags', () => {
     const expList = exp as { type: 'list'; items: string[]; ordered: boolean };
     expect(elList.items).toEqual(expList.items);
   });
+
+  it('should extract headings, paragraphs, and standalone pre/code blocks as expected', () => {
+    const html = fs.readFileSync(
+      path.resolve(__dirname, 'sample-standalone-pre-tag.html'),
+      'utf-8',
+    );
+    const dom = new JSDOM(html);
+    const root = dom.window.document.getElementById('sbo-rt-content') as HTMLElement;
+    const extractor = new BookChapterExtractor(new MockLogger() as any);
+    const elements = extractor.extract(root);
+
+    const expectedJson = fs.readFileSync(
+      path.resolve(__dirname, 'sample-standalone-pre-tag_expected.json'),
+      'utf-8',
+    );
+    
+    const expected: BookChapterElement[] = JSON.parse(expectedJson);
+
+    expect(elements).toEqual(expected);
+  });
 });
