@@ -54,7 +54,7 @@ describe('BookChapterExtractor - pre-tags', () => {
       path.resolve(__dirname, 'sample-standalone-pre-tag_expected.json'),
       'utf-8',
     );
-    
+
     const expected: BookChapterElement[] = JSON.parse(expectedJson);
 
     expect(elements).toEqual(expected);
