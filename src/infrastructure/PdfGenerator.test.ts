@@ -52,6 +52,10 @@ describe('PdfGenerator Integration Test', () => {
       generated: path.resolve(testfilesDir, 'generated-table-pdf.pdf'),
       fixture: path.resolve(testfilesDir, 'expected-table-pdf.pdf'),
     },
+    preformatted: {
+      generated: path.resolve(testfilesDir, 'generated-preformatted-pdf.pdf'),
+      fixture: path.resolve(testfilesDir, 'expected-preformatted-pdf.pdf'),
+    },
   };
   // --- Cleanup: Remove generated PDFs after each test ---
   afterEach(() => {
@@ -119,4 +123,31 @@ describe('PdfGenerator Integration Test', () => {
     const fixtureText = await extractPdfText(fixtureBuffer);
     expect(generatedText).toBe(fixtureText);
   }, 20000);
+
+  // Test: Preformatted content PDF generation and comparison
+  it('should generate PDF matching fixture for preformatted content', async () => {
+    const elements: BookChapterElement[] = [
+      { type: 'heading', level: 2, text: 'Code Example' },
+      { type: 'preformatted', text: 'const x = 42;\nconsole.log(x);' },
+      { type: 'paragraph', text: 'End of example.' },
+    ];
+    // Ensure test fixture directory exists
+    if (!fs.existsSync(testfilesDir)) fs.mkdirSync(testfilesDir, { recursive: true });
+    // Act: Generate the PDF
+    const logger = new MockLogger();
+    const pdfGen = new PdfGenerator();
+    await pdfGen.generateAndDownload(elements, PDF_FILES.preformatted.generated, logger as any);
+    // Assert: Logger calls and file existence
+    expect(fs.existsSync(PDF_FILES.preformatted.generated)).toBe(true);
+    const generatedBuffer = fs.readFileSync(PDF_FILES.preformatted.generated);
+    expect(generatedBuffer.length).toBeGreaterThan(1000);
+    expect(fs.existsSync(PDF_FILES.preformatted.fixture)).toBe(true);
+    const fixtureBuffer = fs.readFileSync(PDF_FILES.preformatted.fixture);
+    // Assert: File size and text content match
+    const sizeDiffRatio = Math.abs(1 - generatedBuffer.length / fixtureBuffer.length);
+    expect(sizeDiffRatio).toBeLessThan(0.1);
+    const generatedText = await extractPdfText(generatedBuffer);
+    const fixtureText = await extractPdfText(fixtureBuffer);
+    expect(generatedText).toBe(fixtureText);
+  });
 });
