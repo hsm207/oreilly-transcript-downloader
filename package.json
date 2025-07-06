@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "format": "npx prettier --write .",
-    "test": "vitest run",
+    "test": "vitest run --bail 1",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

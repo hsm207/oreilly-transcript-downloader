@@ -26,4 +26,5 @@ export type BookChapterElement =
   | { type: 'image'; src: string; alt: string }
   | { type: 'caption'; text: string }
   | { type: 'list'; items: string[]; ordered: boolean }
-  | { type: 'table'; rows: TableRow[]; caption?: string };
+  | { type: 'table'; rows: TableRow[]; caption?: string }
+  | { type: 'preformatted'; text: string };

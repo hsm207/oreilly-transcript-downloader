@@ -19,12 +19,13 @@ This project is a browser extension that allows users to download transcripts fr
 
 ## Development Workflow
 
-After making changes, run these commands to ensure quality:
+After making changes, always use the npm scripts defined in `package.json` to ensure quality:
 
 1. `npm run format` - Format the code
-2. `npx vitest run` - Run automated tests
-3. `npx vite build` - Build the project
-4. Always use `npx` when running Vite commands
+2. `npm run test` - Run automated tests
+3. `npm run build` - Build the project
+
+Do not use `npx` or direct Vite/Vitest commands. Always use the npm scripts provided.
 
 ## Coding Standards
 

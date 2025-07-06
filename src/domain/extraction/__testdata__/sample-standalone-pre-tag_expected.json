@@ -1,0 +1,32 @@
+[
+  {
+    "type": "heading",
+    "level": 1,
+    "text": "2"
+  },
+  {
+    "type": "heading",
+    "level": 1,
+    "text": "Generating Text with AI for Content Creation"
+  },
+  {
+    "type": "paragraph",
+    "text": "Prompt:"
+  },
+  {
+    "type": "preformatted",
+    "text": "Write a Tweet about being a solopreneur"
+  },
+  {
+    "type": "paragraph",
+    "text": "Response:"
+  },
+  {
+    "type": "preformatted",
+    "text": " Embracing the #solopreneur life!  Juggling all roles, making decisions, and learning every day. It's a wild ride, but I'm loving the freedom and growth it brings.  Shoutout to my fellow solopreneurs, let's show 'em what we're made of!  #EntrepreneurSpirit #BossingItUp "
+  },
+  {
+    "type": "paragraph",
+    "text": "Now, let's make it a thread."
+  }
+]
