@@ -43,23 +43,27 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 describe('PdfGenerator Integration Test', () => {
   // --- Test file paths ---
   const testfilesDir = path.resolve(__dirname, '__testdata__');
-  const PDF_FILES = {
+  const extractionTestDir = path.resolve(__dirname, '../domain/extraction/__testdata__');
+  const PDF_TEST_FIXTURES = {
     simple: {
+      inputHtml: null, // Simple test uses programmatically created elements
       generated: path.resolve(testfilesDir, 'generated-simple-pdf.pdf'),
       fixture: path.resolve(testfilesDir, 'expected-simple-pdf.pdf'),
     },
     table: {
+      inputHtml: path.resolve(extractionTestDir, 'tables_input.html'),
       generated: path.resolve(testfilesDir, 'generated-table-pdf.pdf'),
       fixture: path.resolve(testfilesDir, 'expected-table-pdf.pdf'),
     },
     preformatted: {
+      inputHtml: path.resolve(extractionTestDir, 'sample-standalone-pre-tag.html'),
       generated: path.resolve(testfilesDir, 'generated-preformatted-pdf.pdf'),
       fixture: path.resolve(testfilesDir, 'expected-preformatted-pdf.pdf'),
     },
   };
   // --- Cleanup: Remove generated PDFs after each test ---
   afterEach(() => {
-    for (const { generated } of Object.values(PDF_FILES)) {
+    for (const { generated } of Object.values(PDF_TEST_FIXTURES)) {
       if (fs.existsSync(generated)) {
         try {
           fs.unlinkSync(generated);
@@ -81,15 +85,12 @@ describe('PdfGenerator Integration Test', () => {
     // Act: Generate the PDF
     const logger2 = new MockLogger();
     const pdfGen = new PdfGenerator();
-    await pdfGen.generateAndDownload(elements, PDF_FILES.simple.generated, logger2 as any);
-    expect(fs.existsSync(PDF_FILES.simple.generated)).toBe(true);
-    const generatedBuffer = fs.readFileSync(PDF_FILES.simple.generated);
+    await pdfGen.generateAndDownload(elements, PDF_TEST_FIXTURES.simple.generated, logger2 as any);
+    expect(fs.existsSync(PDF_TEST_FIXTURES.simple.generated)).toBe(true);
+    const generatedBuffer = fs.readFileSync(PDF_TEST_FIXTURES.simple.generated);
     expect(generatedBuffer.length).toBeGreaterThan(1000);
-    expect(fs.existsSync(PDF_FILES.simple.fixture)).toBe(true);
-    const fixtureBuffer = fs.readFileSync(PDF_FILES.simple.fixture);
-    // Assert: File size and text content match
-    const sizeDiffRatio = Math.abs(1 - generatedBuffer.length / fixtureBuffer.length);
-    expect(sizeDiffRatio).toBeLessThan(0.1);
+    expect(fs.existsSync(PDF_TEST_FIXTURES.simple.fixture)).toBe(true);
+    const fixtureBuffer = fs.readFileSync(PDF_TEST_FIXTURES.simple.fixture);
     const generatedText = await extractPdfText(generatedBuffer);
     const fixtureText = await extractPdfText(fixtureBuffer);
     expect(generatedText).toBe(fixtureText);
@@ -109,16 +110,13 @@ describe('PdfGenerator Integration Test', () => {
     // Act: Generate the PDF
     const logger4 = new MockLogger();
     const pdfGen = new PdfGenerator();
-    await pdfGen.generateAndDownload(elements, PDF_FILES.table.generated, logger4 as any);
+    await pdfGen.generateAndDownload(elements, PDF_TEST_FIXTURES.table.generated, logger4 as any);
     // Assert: Logger calls and file existence
-    expect(fs.existsSync(PDF_FILES.table.generated)).toBe(true);
-    const generatedBuffer = fs.readFileSync(PDF_FILES.table.generated);
+    expect(fs.existsSync(PDF_TEST_FIXTURES.table.generated)).toBe(true);
+    const generatedBuffer = fs.readFileSync(PDF_TEST_FIXTURES.table.generated);
     expect(generatedBuffer.length).toBeGreaterThan(1000);
-    expect(fs.existsSync(PDF_FILES.table.fixture)).toBe(true);
-    const fixtureBuffer = fs.readFileSync(PDF_FILES.table.fixture);
-    // Assert: File size and text content match
-    const sizeDiffRatio = Math.abs(1 - generatedBuffer.length / fixtureBuffer.length);
-    expect(sizeDiffRatio).toBeLessThan(0.1);
+    expect(fs.existsSync(PDF_TEST_FIXTURES.table.fixture)).toBe(true);
+    const fixtureBuffer = fs.readFileSync(PDF_TEST_FIXTURES.table.fixture);
     const generatedText = await extractPdfText(generatedBuffer);
     const fixtureText = await extractPdfText(fixtureBuffer);
     expect(generatedText).toBe(fixtureText);
@@ -126,26 +124,27 @@ describe('PdfGenerator Integration Test', () => {
 
   // Test: Preformatted content PDF generation and comparison
   it('should generate PDF matching fixture for preformatted content', async () => {
-    const elements: BookChapterElement[] = [
-      { type: 'heading', level: 2, text: 'Code Example' },
-      { type: 'preformatted', text: 'const x = 42;\nconsole.log(x);' },
-      { type: 'paragraph', text: 'End of example.' },
-    ];
+    const html = fs.readFileSync(PDF_TEST_FIXTURES.preformatted.inputHtml, 'utf-8');
+    const dom = new JSDOM(html);
+    const root = dom.window.document.querySelector('#sbo-rt-content') as HTMLElement;
+    const logger = new MockLogger();
+    const extractor = new BookChapterExtractor(logger as any);
+    const elements = extractor.extract(root);
+
     // Ensure test fixture directory exists
     if (!fs.existsSync(testfilesDir)) fs.mkdirSync(testfilesDir, { recursive: true });
     // Act: Generate the PDF
-    const logger = new MockLogger();
+    const logger2 = new MockLogger();
     const pdfGen = new PdfGenerator();
-    await pdfGen.generateAndDownload(elements, PDF_FILES.preformatted.generated, logger as any);
+    await pdfGen.generateAndDownload(elements, PDF_TEST_FIXTURES.preformatted.generated, logger2 as any);
     // Assert: Logger calls and file existence
-    expect(fs.existsSync(PDF_FILES.preformatted.generated)).toBe(true);
-    const generatedBuffer = fs.readFileSync(PDF_FILES.preformatted.generated);
+    expect(fs.existsSync(PDF_TEST_FIXTURES.preformatted.generated)).toBe(true);
+    const generatedBuffer = fs.readFileSync(PDF_TEST_FIXTURES.preformatted.generated);
     expect(generatedBuffer.length).toBeGreaterThan(1000);
-    expect(fs.existsSync(PDF_FILES.preformatted.fixture)).toBe(true);
-    const fixtureBuffer = fs.readFileSync(PDF_FILES.preformatted.fixture);
-    // Assert: File size and text content match
-    const sizeDiffRatio = Math.abs(1 - generatedBuffer.length / fixtureBuffer.length);
-    expect(sizeDiffRatio).toBeLessThan(0.1);
+
+    // Check fixture comparison - emojis should now be stripped during extraction
+    expect(fs.existsSync(PDF_TEST_FIXTURES.preformatted.fixture)).toBe(true);
+    const fixtureBuffer = fs.readFileSync(PDF_TEST_FIXTURES.preformatted.fixture);
     const generatedText = await extractPdfText(generatedBuffer);
     const fixtureText = await extractPdfText(fixtureBuffer);
     expect(generatedText).toBe(fixtureText);

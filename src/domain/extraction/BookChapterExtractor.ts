@@ -256,6 +256,8 @@ export class BookChapterExtractor {
     if (tagName !== 'pre') return false;
     let text = htmlElement.textContent || '';
     text = TextNormalizer.normalizeText(text);
+    // Strip emojis from preformatted text to prevent garbled output in PDF
+    text = TextNormalizer.stripEmojis(text);
     if (text) {
       this.logger.debug(
         `Adding preformatted block: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`,
