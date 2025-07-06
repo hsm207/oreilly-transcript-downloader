@@ -1,0 +1,9 @@
+[
+  {
+    "type": "list",
+    "items": [
+      "Fine-tuning: In fine-tuning, the LLM is trained on a small dataset of labeled examples for the task that it is being asked to perform. This can be a more effective way to generate high-quality responses, but it requires a larger dataset of labeled examples. As an example, let's say that the input is an article about new research on treating cancer, while the training data is articles about cancer research labeled with summaries. Here's the prompt for this. Prompt: Summarize the key findings of the research described in the input article. Here's the output. Response: A short summarization highlighting the key points of the input article."
+    ],
+    "ordered": false
+  }
+]

@@ -18,8 +18,10 @@ export class PdfGenerator {
   ): Promise<void> {
     try {
       await logger.info(`Generating PDF for ${filename}`);
+
       // Set up jsPDF for A4 size, mm units
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
       const pageWidth = 210;
       const pageHeight = 297;
       const leftMargin = 20;
@@ -151,6 +153,33 @@ export class PdfGenerator {
             }
             doc.setTextColor(0);
             doc.setFont('helvetica', 'normal');
+            break;
+          }
+          case 'preformatted': {
+            // Render preformatted/code block in monospaced font, preserve line breaks
+            const fontSize = 11;
+            doc.setFontSize(fontSize);
+            doc.setFont('courier', 'normal');
+            doc.setTextColor(40);
+
+            // Split by lines to preserve formatting
+            const lines = el.text.split(/\r?\n/);
+            for (const line of lines) {
+              // If line is too long, wrap it
+              const wrapped = doc.splitTextToSize(line, usableWidth);
+              for (const wline of wrapped) {
+                if (y + fontSize > pageHeight - bottomMargin) {
+                  doc.addPage();
+                  y = topMargin;
+                }
+                doc.text(wline, leftMargin, y, { baseline: 'top' });
+                y += fontSize + 0.5;
+              }
+            }
+
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0);
+            y += 2; // Extra space after code block
             break;
           }
           case 'table': {
