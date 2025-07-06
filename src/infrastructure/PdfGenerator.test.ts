@@ -51,7 +51,7 @@ describe('PdfGenerator Integration Test', () => {
       fixture: path.resolve(testfilesDir, 'expected-preformatted-pdf.pdf'),
     },
   };
-  
+
   afterEach(() => {
     for (const { generated } of Object.values(PDF_TEST_FIXTURES)) {
       if (fs.existsSync(generated)) {
@@ -69,13 +69,13 @@ describe('PdfGenerator Integration Test', () => {
       { type: 'paragraph', text: 'This is the first sentence for testing PDF generation.' },
       { type: 'paragraph', text: 'This is the second sentence for testing PDF generation.' },
     ];
-    
+
     if (!fs.existsSync(testfilesDir)) fs.mkdirSync(testfilesDir, { recursive: true });
-    
+
     const logger2 = new MockLogger();
     const pdfGen = new PdfGenerator();
     await pdfGen.generateAndDownload(elements, PDF_TEST_FIXTURES.simple.generated, logger2 as any);
-    
+
     expect(fs.existsSync(PDF_TEST_FIXTURES.simple.generated)).toBe(true);
     const generatedBuffer = fs.readFileSync(PDF_TEST_FIXTURES.simple.generated);
     expect(generatedBuffer.length).toBeGreaterThan(1000);
@@ -94,13 +94,13 @@ describe('PdfGenerator Integration Test', () => {
     const logger3 = new MockLogger();
     const extractor = new BookChapterExtractor(logger3 as any);
     const elements = extractor.extract(root);
-    
+
     if (!fs.existsSync(testfilesDir)) fs.mkdirSync(testfilesDir, { recursive: true });
-    
+
     const logger4 = new MockLogger();
     const pdfGen = new PdfGenerator();
     await pdfGen.generateAndDownload(elements, PDF_TEST_FIXTURES.table.generated, logger4 as any);
-    
+
     expect(fs.existsSync(PDF_TEST_FIXTURES.table.generated)).toBe(true);
     const generatedBuffer = fs.readFileSync(PDF_TEST_FIXTURES.table.generated);
     expect(generatedBuffer.length).toBeGreaterThan(1000);
@@ -120,11 +120,15 @@ describe('PdfGenerator Integration Test', () => {
     const elements = extractor.extract(root);
 
     if (!fs.existsSync(testfilesDir)) fs.mkdirSync(testfilesDir, { recursive: true });
-    
+
     const logger2 = new MockLogger();
     const pdfGen = new PdfGenerator();
-    await pdfGen.generateAndDownload(elements, PDF_TEST_FIXTURES.preformatted.generated, logger2 as any);
-    
+    await pdfGen.generateAndDownload(
+      elements,
+      PDF_TEST_FIXTURES.preformatted.generated,
+      logger2 as any,
+    );
+
     expect(fs.existsSync(PDF_TEST_FIXTURES.preformatted.generated)).toBe(true);
     const generatedBuffer = fs.readFileSync(PDF_TEST_FIXTURES.preformatted.generated);
     expect(generatedBuffer.length).toBeGreaterThan(1000);
