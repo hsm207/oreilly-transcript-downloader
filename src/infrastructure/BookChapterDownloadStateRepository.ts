@@ -14,8 +14,7 @@
  * Represents the state of the "Download All Chapters as PDF" operation.
  */
 export interface BookChapterDownloadState {
-  tocItems: { title: string; href: string }[];
-  currentIndex: number;
+  isActive: boolean;
 }
 
 /**

@@ -12,17 +12,13 @@ describe('BookChapterDownloadStateRepository', () => {
     localStorage.clear();
   });
 
-  it('saves and loads state correctly', () => {
+  it('saves and loads an active state correctly', () => {
     const state: BookChapterDownloadState = {
-      tocItems: [
-        { title: 'Chapter 1', href: '/chapter1' },
-        { title: 'Chapter 2', href: '/chapter2' },
-      ],
-      currentIndex: 1,
+      isActive: true,
     };
     repo.save(state);
     const loaded = repo.load();
-    expect(loaded).toEqual(state);
+    expect(loaded).toEqual({ isActive: true });
   });
 
   it('returns null if state is missing', () => {
@@ -36,11 +32,19 @@ describe('BookChapterDownloadStateRepository', () => {
 
   it('clears the state', () => {
     const state: BookChapterDownloadState = {
-      tocItems: [{ title: 'Chapter 1', href: '/chapter1' }],
-      currentIndex: 0,
+      isActive: true,
     };
     repo.save(state);
     repo.clear();
     expect(repo.load()).toBeNull();
+  });
+
+  it('correctly saves and loads an inactive state', () => {
+    const state: BookChapterDownloadState = {
+      isActive: false,
+    };
+    repo.save(state);
+    const loaded = repo.load();
+    expect(loaded).toEqual({ isActive: false });
   });
 });

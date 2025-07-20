@@ -31,64 +31,54 @@ export class AllChapterPdfDownloadService {
    * Starts the bulk chapter download process for all chapters.
    */
   async startDownloadAllChapters(): Promise<void> {
-    // Find the TOC root element (e.g., ol[data-testid="tocItems"])
     const tocRoot = document.querySelector('ol[data-testid="tocItems"]') as HTMLElement | null;
     if (!tocRoot) {
       await this.logger.error('TOC root element not found. Cannot start bulk chapter download.');
       return;
     }
     const tocItems = this.tocExtractor.extractItems(tocRoot);
-    this.stateRepo.save({
-      tocItems,
-      currentIndex: 0,
-    });
-
-    if (tocItems.length > 0) {
-      await this.logger.info('Bulk chapter download started.');
-      const nextUrl = new URL(tocItems[0].href, window.location.href).toString();
-      await politeWait(1000); // Brief wait before initial navigation
-      await this.logger.info(`Navigating to: ${nextUrl}`);
-      window.location.href = nextUrl;
+    if (tocItems.length === 0) {
+      await this.logger.error('No chapters found in TOC. Cannot start bulk chapter download.');
+      return;
     }
+
+    this.stateRepo.save({ isActive: true });
+    await this.logger.info('Bulk chapter download started.');
+    const nextUrl = new URL(tocItems[0].href, window.location.href).toString();
+    await politeWait(1000); // Brief wait before initial navigation
+    await this.logger.info(`Navigating to: ${nextUrl}`);
+    window.location.href = nextUrl;
   }
 
-  /**
-   * Resumes the bulk chapter download process if state exists.
-   */
   async resumeDownloadIfNeeded(): Promise<void> {
     const state = this.stateRepo.load();
-    if (!state) return;
+    if (!state || !state.isActive) {
+      return; // Not in an active download session
+    }
+
     await this.logger.info('Resuming bulk chapter download.');
 
-    // Wait for book content to be fully loaded before proceeding
     try {
       await waitForBookContent();
     } catch (err) {
       await this.logger.error('Book content did not load in time. Aborting chapter download.');
+      // We don't clear state here, to allow for manual retry/navigation.
       return;
     }
 
-    const { tocItems, currentIndex } = state;
-    if (!tocItems || tocItems.length === 0 || currentIndex >= tocItems.length) return;
+    const h1 = document.querySelector('h1');
+    const chapterTitle = h1 ? h1.textContent?.trim() || 'chapter' : 'chapter';
+    await this.bookChapterPdfService.downloadCurrentChapterAsPdf(`${chapterTitle}.pdf`);
+    await this.logger.info(`'${chapterTitle}' PDF download initiated.`);
 
-    const currentItem = tocItems[currentIndex];
-    await this.logger.info(`Processing chapter: ${currentItem.title}`);
-    await this.bookChapterPdfService.downloadCurrentChapterAsPdf(`${currentItem.title}.pdf`);
-    await this.logger.info(`${currentItem.title} PDF download initiated.`);
-
-    if (currentIndex < tocItems.length - 1) {
-      // Not last chapter: increment index, save state, and navigate
-      this.stateRepo.save({ tocItems, currentIndex: currentIndex + 1 });
-      await politeWait(); // Default 3 second wait before navigating to next chapter
-      const nextUrl = new URL(tocItems[currentIndex + 1].href, window.location.href).toString();
-      await this.logger.info(`Navigating to: ${nextUrl}`);
-      window.location.href = nextUrl;
+    const nextLink = document.querySelector('[data-testid="statusBarNext"] a');
+    if (nextLink instanceof HTMLAnchorElement) {
+      await this.logger.info('Found next chapter link. Navigating...');
+      await politeWait();
+      window.location.href = nextLink.href;
     } else {
-      // Last chapter: clear state and log completion
+      await this.logger.info('No next chapter link found. Bulk download completed.');
       this.stateRepo.clear();
-      await this.logger.info('Bulk chapter download completed.');
-
-      // Show a notification to the user - careful about wording, not guaranteeing success
       alert(
         'All chapters have been processed. Please check the extension logs for any errors or warnings.',
       );
