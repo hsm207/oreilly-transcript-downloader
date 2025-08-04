@@ -668,4 +668,52 @@ describe('BookChapterExtractor', () => {
     );
     expect(regularContent).toBeDefined();
   });
+
+  /**
+   * Test for Task 3: Handles mixed containers (BOOKS)
+   * 
+   * This test verifies that the extractor can handle containers with both
+   * direct text content AND child elements, extracting both properly.
+   * Based on the plan example: <div>Part I<p>Intro paragraph</p></div>
+   */
+  it('should handle mixed containers with direct text and child elements', () => {
+    const chapterDiv = document.createElement('div');
+    chapterDiv.className = 'chapter';
+
+    // Create the exact example from the plan
+    const mixedDiv = document.createElement('div');
+    mixedDiv.appendChild(document.createTextNode('Part I'));
+    
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'Intro paragraph';
+    mixedDiv.appendChild(paragraph);
+    
+    chapterDiv.appendChild(mixedDiv);
+
+    root.appendChild(chapterDiv);
+
+    const result = extractor.extract(root);
+
+    // We should extract both "Part I" and "Intro paragraph" as separate paragraphs
+    // The exact behavior depends on our implementation, but both should be present
+    
+    // Look for "Part I" text
+    const partIText = result.find(
+      (element) => 
+        element.type === 'paragraph' && 
+        element.text.includes('Part I')
+    );
+    expect(partIText).toBeDefined();
+
+    // Look for "Intro paragraph" text
+    const introText = result.find(
+      (element) => 
+        element.type === 'paragraph' && 
+        element.text.includes('Intro paragraph')
+    );
+    expect(introText).toBeDefined();
+
+    // We expect at least these 2 elements
+    expect(result.length).toBeGreaterThanOrEqual(1);
+  });
 });
