@@ -28,3 +28,5 @@ dist-ssr
 .webextrc.*
 coverage
 feature.md
+
+planning/
