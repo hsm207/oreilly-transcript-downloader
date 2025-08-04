@@ -516,4 +516,200 @@ describe('BookChapterExtractor', () => {
       'The captured data is converted',
     );
   });
+
+  /**
+   * Test for Task 1: Extracts direct text nodes from containers (BOOKS)
+   *
+   * This test verifies that the extractor can handle direct text nodes inside containers.
+   * Example: <div>Part I</div> should extract "Part I" as a paragraph.
+   */
+  it('should extract direct text nodes from containers as paragraphs', () => {
+    const chapterDiv = document.createElement('div');
+    chapterDiv.className = 'chapter';
+
+    // Create a div with direct text content (no child elements)
+    const partDiv = document.createElement('div');
+    partDiv.textContent = 'Part I';
+    chapterDiv.appendChild(partDiv);
+
+    // Create another div with direct text content
+    const chapterTitleDiv = document.createElement('div');
+    chapterTitleDiv.textContent = 'Introduction to Modern Programming';
+    chapterDiv.appendChild(chapterTitleDiv);
+
+    // Create a div with mixed content (direct text + child elements)
+    const mixedDiv = document.createElement('div');
+    mixedDiv.appendChild(document.createTextNode('Chapter Overview: '));
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'This chapter covers the basics.';
+    mixedDiv.appendChild(paragraph);
+    chapterDiv.appendChild(mixedDiv);
+
+    root.appendChild(chapterDiv);
+
+    const result = extractor.extract(root);
+
+    // We expect to find the direct text nodes as paragraphs
+    const directTextParagraphs = result.filter(
+      (element) =>
+        element.type === 'paragraph' &&
+        (element.text === 'Part I' ||
+          element.text === 'Introduction to Modern Programming' ||
+          element.text === 'Chapter Overview:'),
+    );
+
+    expect(directTextParagraphs.length).toBeGreaterThan(0);
+
+    // Verify we can find "Part I" as a paragraph
+    const partIParagraph = result.find(
+      (element) => element.type === 'paragraph' && element.text === 'Part I',
+    );
+    expect(partIParagraph).toBeDefined();
+
+    // Verify we can find the chapter title as a paragraph
+    const chapterTitleParagraph = result.find(
+      (element) =>
+        element.type === 'paragraph' && element.text === 'Introduction to Modern Programming',
+    );
+    expect(chapterTitleParagraph).toBeDefined();
+
+    // Verify we can find the mixed content direct text as a paragraph
+    const overviewParagraph = result.find(
+      (element) => element.type === 'paragraph' && element.text === 'Chapter Overview:',
+    );
+    expect(overviewParagraph).toBeDefined();
+
+    // Also verify that regular paragraph still works
+    const regularParagraph = result.find(
+      (element) =>
+        element.type === 'paragraph' && element.text === 'This chapter covers the basics.',
+    );
+    expect(regularParagraph).toBeDefined();
+  });
+
+  /**
+   * Test for Task 2: Skips only UI navs, not content navs (BOOKS)
+   *
+   * This test verifies that the extractor can distinguish between:
+   * - UI navigation elements that should be skipped
+   * - Content navigation elements (TOC) that should be included
+   */
+  it('should skip UI navs but include content navs with semantic attributes', () => {
+    const chapterDiv = document.createElement('div');
+    chapterDiv.className = 'chapter';
+
+    // Create a UI nav that should be skipped (generic classes)
+    const uiNav = document.createElement('nav');
+    uiNav.className = 'css-0 _statusBar_';
+    uiNav.innerHTML = '<a href="#">Home</a> | <a href="#">Settings</a>';
+    chapterDiv.appendChild(uiNav);
+
+    // Create a content nav with role="doc-toc" that should be included
+    const tocNav1 = document.createElement('nav');
+    tocNav1.setAttribute('role', 'doc-toc');
+    tocNav1.innerHTML = `
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#ch1">Chapter 1: Introduction</a></li>
+        <li><a href="#ch2">Chapter 2: Getting Started</a></li>
+      </ul>
+    `;
+    chapterDiv.appendChild(tocNav1);
+
+    // Create another content nav with epub:type="toc" that should be included
+    const tocNav2 = document.createElement('nav');
+    tocNav2.setAttribute('epub:type', 'toc');
+    tocNav2.innerHTML = `
+      <p>Part I: Fundamentals</p>
+      <p>Part II: Advanced Topics</p>
+    `;
+    chapterDiv.appendChild(tocNav2);
+
+    // Add a regular paragraph for comparison
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'This is regular content.';
+    chapterDiv.appendChild(paragraph);
+
+    root.appendChild(chapterDiv);
+
+    const result = extractor.extract(root);
+
+    // Verify we DON'T find content from UI nav
+    const uiNavContent = result.find(
+      (element) =>
+        element.type === 'paragraph' &&
+        (element.text.includes('Home') || element.text.includes('Settings')),
+    );
+    expect(uiNavContent).toBeUndefined();
+
+    // Verify we DO find content from semantic TOC navs
+    const tocHeading = result.find(
+      (element) => element.type === 'heading' && element.text === 'Table of Contents',
+    );
+    expect(tocHeading).toBeDefined();
+
+    // The chapter links are extracted as list items, not paragraphs
+    const chapterList = result.find(
+      (element) =>
+        element.type === 'list' &&
+        element.items &&
+        element.items.some((item: string) => item.includes('Chapter 1: Introduction')),
+    );
+    expect(chapterList).toBeDefined();
+
+    const partContent = result.find(
+      (element) => element.type === 'paragraph' && element.text === 'Part I: Fundamentals',
+    );
+    expect(partContent).toBeDefined();
+
+    // Verify regular content still works
+    const regularContent = result.find(
+      (element) => element.type === 'paragraph' && element.text === 'This is regular content.',
+    );
+    expect(regularContent).toBeDefined();
+  });
+
+  /**
+   * Test for Task 3: Handles mixed containers (BOOKS)
+   *
+   * This test verifies that the extractor can handle containers with both
+   * direct text content AND child elements, extracting both properly.
+   * Based on the plan example: <div>Part I<p>Intro paragraph</p></div>
+   */
+  it('should handle mixed containers with direct text and child elements', () => {
+    const chapterDiv = document.createElement('div');
+    chapterDiv.className = 'chapter';
+
+    // Create the exact example from the plan
+    const mixedDiv = document.createElement('div');
+    mixedDiv.appendChild(document.createTextNode('Part I'));
+
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'Intro paragraph';
+    mixedDiv.appendChild(paragraph);
+
+    chapterDiv.appendChild(mixedDiv);
+
+    root.appendChild(chapterDiv);
+
+    const result = extractor.extract(root);
+
+    // We should extract both "Part I" and "Intro paragraph" as separate paragraphs
+    // The exact behavior depends on our implementation, but both should be present
+
+    // Look for "Part I" text
+    const partIText = result.find(
+      (element) => element.type === 'paragraph' && element.text.includes('Part I'),
+    );
+    expect(partIText).toBeDefined();
+
+    // Look for "Intro paragraph" text
+    const introText = result.find(
+      (element) => element.type === 'paragraph' && element.text.includes('Intro paragraph'),
+    );
+    expect(introText).toBeDefined();
+
+    // We expect at least these 2 elements
+    expect(result.length).toBeGreaterThanOrEqual(1);
+  });
 });

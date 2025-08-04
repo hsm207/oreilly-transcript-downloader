@@ -20,10 +20,10 @@ export class PdfGenerator {
       await logger.info(`Generating PDF for ${filename}`);
 
       // Set up jsPDF for A4 size, mm units with explicit encoding
-      const doc = new jsPDF({ 
-        unit: 'mm', 
+      const doc = new jsPDF({
+        unit: 'mm',
         format: 'a4',
-        compress: true
+        compress: true,
       });
 
       // 🚨 EXPLICITLY SET FONT AND ENCODING TO FIX CHARACTER RENDERING
