@@ -325,32 +325,26 @@ export class BookChapterExtractor {
     if (containerElements.includes(tagName) || isSpecialContainer) {
       this.logger.debug(`Processing children of container: ${tagName}`);
       
-      // Check for direct text nodes in the container first
-      let hasDirectTextContent = false;
+      // First, extract any direct text nodes as paragraphs
       const directTextNodes: string[] = [];
-      
       for (const child of Array.from(htmlElement.childNodes)) {
         if (child.nodeType === Node.TEXT_NODE) {
           const textContent = child.textContent?.trim();
           if (textContent) {
             directTextNodes.push(textContent);
-            hasDirectTextContent = true;
           }
         }
       }
       
-      // If we found direct text content, add it as a paragraph
-      if (hasDirectTextContent && directTextNodes.length > 0) {
-        const combinedText = directTextNodes.join(' ').trim();
-        if (combinedText) {
-          this.logger.debug(
-            `Adding direct text from container as paragraph: "${combinedText.substring(0, 30)}${combinedText.length > 30 ? '...' : ''}"`,
-          );
-          elements.push({ type: 'paragraph', text: combinedText });
-        }
+      // Add each direct text node as a separate paragraph
+      for (const textContent of directTextNodes) {
+        this.logger.debug(
+          `Adding direct text from container as paragraph: "${textContent.substring(0, 30)}${textContent.length > 30 ? '...' : ''}"`,
+        );
+        elements.push({ type: 'paragraph', text: textContent });
       }
       
-      // Then process child elements normally
+      // Then process all child elements normally
       for (const child of Array.from(htmlElement.childNodes)) {
         this.processNode(child, elements);
       }
