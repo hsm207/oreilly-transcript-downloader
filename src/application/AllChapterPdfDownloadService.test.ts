@@ -2,21 +2,43 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AllChapterPdfDownloadService } from './AllChapterPdfDownloadService';
 import * as waitModule from '../infrastructure/waitForBookContent';
 import * as politeWaitModule from '../infrastructure/politeWait';
-import {
-  BookChapterDownloadStateRepository,
-  BookChapterDownloadState,
-} from '../infrastructure/BookChapterDownloadStateRepository';
+import { BulkChapterDownloadStateRepository } from '../infrastructure/BulkChapterDownloadStateRepository';
 import { TocExtractor } from '../domain/extraction/TocExtractor';
 import { BookChapterPdfService } from './BookChapterPdfService';
 
 vi.mock('./BookChapterPdfService'); // Automatically mock all exports
 
 describe('AllChapterPdfDownloadService', () => {
+  it('should use "null-title.pdf" as the filename if document.title is empty (navigation-based stateless flow)', async () => {
+    // Arrange: set up mocks for navigation-based, stateless flow
+    Object.defineProperty(document, 'title', { value: '', configurable: true });
+    // Create mock bulk state repo that always returns true
+    const mockBulkStateRepo = {
+      isInProgress: () => true,
+      clear: vi.fn(),
+      setInProgress: vi.fn(),
+    } as any;
+    // Create service instance with mocks
+    const testService = new AllChapterPdfDownloadService(
+      mockTocExtractor,
+      mockBookChapterPdfService,
+      mockLogger,
+      mockBulkStateRepo,
+    );
+    // waitForBookContent resolves
+    waitForBookContentSpy.mockResolvedValue(document.createElement('div'));
+    // Act
+    await testService.resumeDownloadIfNeeded();
+    // Assert
+    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith(
+      'null-title.pdf',
+    );
+  });
   let waitForBookContentSpy: ReturnType<typeof vi.spyOn>;
   let politeWaitSpy: ReturnType<typeof vi.spyOn>;
   let service: AllChapterPdfDownloadService;
   let mockTocExtractor: TocExtractor;
-  let mockStateRepo: BookChapterDownloadStateRepository;
+  let mockBulkStateRepo: BulkChapterDownloadStateRepository;
   let mockBookChapterPdfService: BookChapterPdfService;
   let mockLogger: any;
   let originalLocation: Location;
@@ -38,11 +60,11 @@ describe('AllChapterPdfDownloadService', () => {
     vi.clearAllMocks();
 
     mockTocExtractor = { extractItems: vi.fn() } as unknown as TocExtractor;
-    mockStateRepo = {
-      save: vi.fn(),
-      load: vi.fn(),
+    mockBulkStateRepo = {
+      setInProgress: vi.fn(),
       clear: vi.fn(),
-    } as unknown as BookChapterDownloadStateRepository;
+      isInProgress: vi.fn(),
+    } as unknown as BulkChapterDownloadStateRepository;
 
     mockBookChapterPdfService = {
       downloadCurrentChapterAsPdf: vi.fn().mockResolvedValue(undefined),
@@ -67,9 +89,9 @@ describe('AllChapterPdfDownloadService', () => {
 
     service = new AllChapterPdfDownloadService(
       mockTocExtractor,
-      mockStateRepo,
       mockBookChapterPdfService,
       mockLogger,
+      mockBulkStateRepo,
     );
   });
 
@@ -86,7 +108,7 @@ describe('AllChapterPdfDownloadService', () => {
     vi.restoreAllMocks(); // Also good practice to restore all mocks
   });
 
-  it('should start the bulk chapter download process with polite wait, save initial state, and navigate to first chapter', async () => {
+  it('should start the bulk chapter download process, set progress flag, and navigate to first chapter', async () => {
     // Arrange: mock TOC extraction and DOM
     const tocItems = [
       { title: 'Chapter 1', href: '/chapter1' },
@@ -105,10 +127,7 @@ describe('AllChapterPdfDownloadService', () => {
 
     // Assert
     expect(mockTocExtractor.extractItems).toHaveBeenCalledWith(tocRoot);
-    expect(mockStateRepo.save).toHaveBeenCalledWith({
-      tocItems,
-      currentIndex: 0,
-    });
+    expect(mockBulkStateRepo.setInProgress).toHaveBeenCalled();
     expect(politeWaitSpy).toHaveBeenCalledWith(1000);
     expect(mockLogger.info).toHaveBeenCalledWith('Bulk chapter download started.');
     expect(mockLogger.info).toHaveBeenCalledWith('Navigating to: http://initial.com/chapter1');
@@ -118,137 +137,51 @@ describe('AllChapterPdfDownloadService', () => {
     document.body.removeChild(tocRoot);
   });
 
-  it('should resume bulk chapter download if state exists and wait for book content', async () => {
-    // Arrange: mock state exists
-    const state: BookChapterDownloadState = {
-      tocItems: [{ title: 'Chapter 1', href: '/chapter1' }],
-      currentIndex: 0,
-    };
-    (mockStateRepo.load as any).mockReturnValue(state);
-    // Act
-    await service.resumeDownloadIfNeeded();
-    // Assert
-    expect(waitForBookContentSpy).toHaveBeenCalled();
-    expect(mockStateRepo.load).toHaveBeenCalled();
-    expect(mockLogger.info).toHaveBeenCalled();
-  });
-
-  it('should do nothing if no state exists on resume', async () => {
-    (mockStateRepo.load as any).mockReturnValue(null);
-    await service.resumeDownloadIfNeeded();
-    expect(mockStateRepo.load).toHaveBeenCalled();
-    // Should not call logger or process anything
-    expect(mockLogger.info).not.toHaveBeenCalled();
-  });
-
-  it('should process the current chapter, download PDF, update state, wait politely and navigate on resume (happy path)', async () => {
-    // Ensure waitForBookContent is called and resolves
+  it('should process chapter and download PDF when bulk download is in progress', async () => {
+    // Arrange: bulk download is in progress
+    (mockBulkStateRepo.isInProgress as any).mockReturnValue(true);
     waitForBookContentSpy.mockResolvedValue(document.createElement('div'));
-    // Arrange: mock state with a chapter to process
-    const tocItems = [
-      { title: 'Chapter 1', href: '/chapter1' },
-      { title: 'Chapter 2', href: '/chapter2' },
-    ];
-    const initialState: BookChapterDownloadState = {
-      tocItems,
-      currentIndex: 0,
-    };
-    (mockStateRepo.load as any).mockReturnValue(initialState);
-    mockLocation.href = 'http://initial.com/page'; // Set specific initial URL for this test if needed
-    // No need to mock static method; instance method is already mocked in mockBookChapterPdfService
+    Object.defineProperty(document, 'title', { value: 'Test Chapter', configurable: true });
 
     // Act
     await service.resumeDownloadIfNeeded();
-    expect(waitForBookContentSpy).toHaveBeenCalled();
-    expect(politeWaitSpy).toHaveBeenCalled(); // Default parameter (3000ms)
 
     // Assert
+    expect(waitForBookContentSpy).toHaveBeenCalled();
     expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith(
-      'Chapter 1.pdf',
+      'Test Chapter.pdf',
     );
-    expect(mockStateRepo.save).toHaveBeenCalledWith({
-      ...initialState,
-      currentIndex: 1, // Incremented index
-    });
-    expect(mockLogger.info).toHaveBeenCalledWith('Processing chapter: Chapter 1');
-    expect(mockLogger.info).toHaveBeenCalledWith('Chapter 1 PDF download initiated.');
-    expect(mockLogger.info).toHaveBeenCalledWith('Navigating to: http://initial.com/chapter2');
-    expect(mockLocation.href).toBe('http://initial.com/chapter2'); // Assert navigation to the NEXT chapter
+    expect(mockLogger.info).toHaveBeenCalledWith('Book content loaded. Ready to process chapter.');
   });
 
-  it('should complete the download, clear state, and not navigate when the last chapter is processed (waits for book content)', async () => {
-    // Ensure waitForBookContent is called and resolves
-    waitForBookContentSpy.mockResolvedValue(document.createElement('div'));
-    // Arrange: mock state with the last chapter to process
-    const tocItems = [
-      { title: 'Chapter 1', href: '/chapter1' },
-      { title: 'Chapter 2', href: '/chapter2' },
-    ];
-    const initialState: BookChapterDownloadState = {
-      tocItems,
-      currentIndex: 1, // Pointing to the last chapter
-    };
-    (mockStateRepo.load as any).mockReturnValue(initialState);
-    // No need to mock static method; instance method is already mocked in mockBookChapterPdfService
-    mockLocation.href = 'http://initial.com/last-chapter-page'; // Set specific initial URL for this test
+  it('should skip resume logic when bulk download is not in progress', async () => {
+    // Arrange: bulk download is not in progress
+    (mockBulkStateRepo.isInProgress as any).mockReturnValue(false);
 
     // Act
     await service.resumeDownloadIfNeeded();
-    expect(waitForBookContentSpy).toHaveBeenCalled();
+
     // Assert
-    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith(
-      'Chapter 2.pdf',
+    expect(mockBulkStateRepo.isInProgress).toHaveBeenCalled();
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'Bulk chapter download not in progress. Skipping resume logic.',
     );
-    expect(mockStateRepo.clear).toHaveBeenCalled();
-    expect(mockLogger.info).toHaveBeenCalledWith('Processing chapter: Chapter 2');
-    expect(mockLogger.info).toHaveBeenCalledWith('Chapter 2 PDF download initiated.');
-    expect(mockLogger.info).toHaveBeenCalledWith('Bulk chapter download completed.');
-    expect(mockStateRepo.save).not.toHaveBeenCalledWith({
-      tocItems,
-      currentIndex: 2,
-    });
-    expect(mockLocation.href).toBe('http://initial.com/last-chapter-page');
+    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).not.toHaveBeenCalled();
   });
 
   it('should abort and log error if book content does not load in time', async () => {
-    // Arrange: mock state exists and waitForBookContent rejects
-    const state: BookChapterDownloadState = {
-      tocItems: [{ title: 'Chapter 1', href: '/chapter1' }],
-      currentIndex: 0,
-    };
-    (mockStateRepo.load as any).mockReturnValue(state);
+    // Arrange: bulk download in progress but content fails to load
+    (mockBulkStateRepo.isInProgress as any).mockReturnValue(true);
     waitForBookContentSpy.mockRejectedValue(new Error('Book content did not load in time.'));
+
     // Act
     await service.resumeDownloadIfNeeded();
+
     // Assert
     expect(waitForBookContentSpy).toHaveBeenCalled();
     expect(mockLogger.error).toHaveBeenCalledWith(
       'Book content did not load in time. Aborting chapter download.',
     );
-    // Should not process chapter or navigate
     expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).not.toHaveBeenCalled();
-  });
-
-  it('should display completion alert with appropriate cautious wording when processing the last chapter', async () => {
-    // Ensure waitForBookContent is called and resolves
-    waitForBookContentSpy.mockResolvedValue(document.createElement('div'));
-    // Arrange: mock state with the last chapter to process
-    const tocItems = [
-      { title: 'Chapter 1', href: '/chapter1' },
-      { title: 'Chapter 2', href: '/chapter2' },
-    ];
-    const initialState: BookChapterDownloadState = {
-      tocItems,
-      currentIndex: 1, // Pointing to the last chapter
-    };
-    (mockStateRepo.load as any).mockReturnValue(initialState);
-
-    // Act
-    await service.resumeDownloadIfNeeded();
-
-    // Assert
-    expect(window.alert).toHaveBeenCalledWith(
-      'All chapters have been processed. Please check the extension logs for any errors or warnings.',
-    );
   });
 });

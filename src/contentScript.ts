@@ -8,7 +8,7 @@ import { TranscriptToggler } from './domain/transcript/TranscriptToggler';
 import { TocToggler } from './domain/toc/TocToggler';
 import { AllTranscriptDownloadService } from './application/AllTranscriptDownloadService';
 import { AllChapterPdfDownloadService } from './application/AllChapterPdfDownloadService';
-import { BookChapterDownloadStateRepository } from './infrastructure/BookChapterDownloadStateRepository';
+import { BulkChapterDownloadStateRepository } from './infrastructure/BulkChapterDownloadStateRepository';
 import { PersistentLogger } from './infrastructure/logging/PersistentLogger';
 import { BookChapterExtractor } from './domain/extraction/BookChapterExtractor';
 import { PdfGenerator } from './infrastructure/PdfGenerator';
@@ -16,13 +16,13 @@ import { PdfGenerator } from './infrastructure/PdfGenerator';
 // On every page load, check if book chapter download state exists and resume download using the application service
 const allChapterPdfDownloadService = new AllChapterPdfDownloadService(
   new DefaultTocExtractor(),
-  new BookChapterDownloadStateRepository(),
   new BookChapterPdfService(
     new BookChapterExtractor(PersistentLogger.instance),
     new PdfGenerator(),
     PersistentLogger.instance,
   ),
   PersistentLogger.instance,
+  new BulkChapterDownloadStateRepository(),
 );
 
 allChapterPdfDownloadService.resumeDownloadIfNeeded();
