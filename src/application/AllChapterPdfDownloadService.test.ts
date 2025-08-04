@@ -13,20 +13,26 @@ describe('AllChapterPdfDownloadService', () => {
     // Arrange: set up mocks for navigation-based, stateless flow
     Object.defineProperty(document, 'title', { value: '', configurable: true });
     // Create mock bulk state repo that always returns true
-    const mockBulkStateRepo = { isInProgress: () => true, clear: vi.fn(), setInProgress: vi.fn() } as any;
+    const mockBulkStateRepo = {
+      isInProgress: () => true,
+      clear: vi.fn(),
+      setInProgress: vi.fn(),
+    } as any;
     // Create service instance with mocks
     const testService = new AllChapterPdfDownloadService(
       mockTocExtractor,
       mockBookChapterPdfService,
       mockLogger,
-      mockBulkStateRepo
+      mockBulkStateRepo,
     );
     // waitForBookContent resolves
     waitForBookContentSpy.mockResolvedValue(document.createElement('div'));
     // Act
     await testService.resumeDownloadIfNeeded();
     // Assert
-    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith('null-title.pdf');
+    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith(
+      'null-title.pdf',
+    );
   });
   let waitForBookContentSpy: ReturnType<typeof vi.spyOn>;
   let politeWaitSpy: ReturnType<typeof vi.spyOn>;
@@ -136,26 +142,30 @@ describe('AllChapterPdfDownloadService', () => {
     (mockBulkStateRepo.isInProgress as any).mockReturnValue(true);
     waitForBookContentSpy.mockResolvedValue(document.createElement('div'));
     Object.defineProperty(document, 'title', { value: 'Test Chapter', configurable: true });
-    
+
     // Act
     await service.resumeDownloadIfNeeded();
-    
+
     // Assert
     expect(waitForBookContentSpy).toHaveBeenCalled();
-    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith('Test Chapter.pdf');
+    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).toHaveBeenCalledWith(
+      'Test Chapter.pdf',
+    );
     expect(mockLogger.info).toHaveBeenCalledWith('Book content loaded. Ready to process chapter.');
   });
 
   it('should skip resume logic when bulk download is not in progress', async () => {
     // Arrange: bulk download is not in progress
     (mockBulkStateRepo.isInProgress as any).mockReturnValue(false);
-    
+
     // Act
     await service.resumeDownloadIfNeeded();
-    
+
     // Assert
     expect(mockBulkStateRepo.isInProgress).toHaveBeenCalled();
-    expect(mockLogger.info).toHaveBeenCalledWith('Bulk chapter download not in progress. Skipping resume logic.');
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'Bulk chapter download not in progress. Skipping resume logic.',
+    );
     expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).not.toHaveBeenCalled();
   });
 
@@ -163,10 +173,10 @@ describe('AllChapterPdfDownloadService', () => {
     // Arrange: bulk download in progress but content fails to load
     (mockBulkStateRepo.isInProgress as any).mockReturnValue(true);
     waitForBookContentSpy.mockRejectedValue(new Error('Book content did not load in time.'));
-    
+
     // Act
     await service.resumeDownloadIfNeeded();
-    
+
     // Assert
     expect(waitForBookContentSpy).toHaveBeenCalled();
     expect(mockLogger.error).toHaveBeenCalledWith(
