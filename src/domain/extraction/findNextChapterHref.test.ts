@@ -1,6 +1,5 @@
-
-import { describe, it, expect } from "vitest";
-import { findNextChapterHref } from "./findNextChapterHref";
+import { describe, it, expect } from 'vitest';
+import { findNextChapterHref } from './findNextChapterHref';
 
 describe('findNextChapterHref', () => {
   it('returns the href when the next button exists', () => {

@@ -44,8 +44,8 @@ export class AllChapterPdfDownloadService {
       await this.logger.error('No chapters found in TOC.');
       return;
     }
-  // Set bulk download flag using repository
-  this.bulkStateRepo.setInProgress();
+    // Set bulk download flag using repository
+    this.bulkStateRepo.setInProgress();
     await this.logger.info('Bulk chapter download started.');
     const firstUrl = new URL(tocItems[0].href, window.location.href).toString();
     await politeWait(1000); // Brief wait before initial navigation
@@ -72,9 +72,11 @@ export class AllChapterPdfDownloadService {
       return;
     }
 
-  // Use the document's title as the filename (or fallback)
-  const title = document.title && document.title.trim() ? document.title : 'null-title';
-    await this.logger.info(`Starting PDF download for chapter: "${title}" (URL: ${window.location.href})`);
+    // Use the document's title as the filename (or fallback)
+    const title = document.title && document.title.trim() ? document.title : 'null-title';
+    await this.logger.info(
+      `Starting PDF download for chapter: "${title}" (URL: ${window.location.href})`,
+    );
     await this.bookChapterPdfService.downloadCurrentChapterAsPdf(`${title}.pdf`);
     await this.logger.info(`PDF download initiated for: "${title}"`);
 
@@ -88,9 +90,11 @@ export class AllChapterPdfDownloadService {
       window.location.href = nextUrl;
     } else {
       await this.logger.info('No next chapter found. Bulk chapter download completed.');
-  // Clear the bulk download flag using repository
-  this.bulkStateRepo.clear();
-      alert('All chapters have been processed. Please check the extension logs for any errors or warnings.');
+      // Clear the bulk download flag using repository
+      this.bulkStateRepo.clear();
+      alert(
+        'All chapters have been processed. Please check the extension logs for any errors or warnings.',
+      );
     }
   }
 }
