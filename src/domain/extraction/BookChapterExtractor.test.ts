@@ -519,7 +519,7 @@ describe('BookChapterExtractor', () => {
 
   /**
    * Test for Task 1: Extracts direct text nodes from containers (BOOKS)
-   * 
+   *
    * This test verifies that the extractor can handle direct text nodes inside containers.
    * Example: <div>Part I</div> should extract "Part I" as a paragraph.
    */
@@ -551,43 +551,45 @@ describe('BookChapterExtractor', () => {
 
     // We expect to find the direct text nodes as paragraphs
     const directTextParagraphs = result.filter(
-      (element) => 
-        element.type === 'paragraph' && 
-        (element.text === 'Part I' || 
-         element.text === 'Introduction to Modern Programming' ||
-         element.text === 'Chapter Overview:')
+      (element) =>
+        element.type === 'paragraph' &&
+        (element.text === 'Part I' ||
+          element.text === 'Introduction to Modern Programming' ||
+          element.text === 'Chapter Overview:'),
     );
 
     expect(directTextParagraphs.length).toBeGreaterThan(0);
-    
+
     // Verify we can find "Part I" as a paragraph
     const partIParagraph = result.find(
-      (element) => element.type === 'paragraph' && element.text === 'Part I'
+      (element) => element.type === 'paragraph' && element.text === 'Part I',
     );
     expect(partIParagraph).toBeDefined();
 
     // Verify we can find the chapter title as a paragraph
     const chapterTitleParagraph = result.find(
-      (element) => element.type === 'paragraph' && element.text === 'Introduction to Modern Programming'
+      (element) =>
+        element.type === 'paragraph' && element.text === 'Introduction to Modern Programming',
     );
     expect(chapterTitleParagraph).toBeDefined();
 
     // Verify we can find the mixed content direct text as a paragraph
     const overviewParagraph = result.find(
-      (element) => element.type === 'paragraph' && element.text === 'Chapter Overview:'
+      (element) => element.type === 'paragraph' && element.text === 'Chapter Overview:',
     );
     expect(overviewParagraph).toBeDefined();
 
     // Also verify that regular paragraph still works
     const regularParagraph = result.find(
-      (element) => element.type === 'paragraph' && element.text === 'This chapter covers the basics.'
+      (element) =>
+        element.type === 'paragraph' && element.text === 'This chapter covers the basics.',
     );
     expect(regularParagraph).toBeDefined();
   });
 
   /**
    * Test for Task 2: Skips only UI navs, not content navs (BOOKS)
-   * 
+   *
    * This test verifies that the extractor can distinguish between:
    * - UI navigation elements that should be skipped
    * - Content navigation elements (TOC) that should be included
@@ -634,44 +636,42 @@ describe('BookChapterExtractor', () => {
 
     // Verify we DON'T find content from UI nav
     const uiNavContent = result.find(
-      (element) => 
-        element.type === 'paragraph' && 
-        (element.text.includes('Home') || element.text.includes('Settings'))
+      (element) =>
+        element.type === 'paragraph' &&
+        (element.text.includes('Home') || element.text.includes('Settings')),
     );
     expect(uiNavContent).toBeUndefined();
 
     // Verify we DO find content from semantic TOC navs
     const tocHeading = result.find(
-      (element) => element.type === 'heading' && element.text === 'Table of Contents'
+      (element) => element.type === 'heading' && element.text === 'Table of Contents',
     );
     expect(tocHeading).toBeDefined();
 
     // The chapter links are extracted as list items, not paragraphs
     const chapterList = result.find(
-      (element) => 
-        element.type === 'list' && 
-        element.items && 
-        element.items.some((item: string) => item.includes('Chapter 1: Introduction'))
+      (element) =>
+        element.type === 'list' &&
+        element.items &&
+        element.items.some((item: string) => item.includes('Chapter 1: Introduction')),
     );
     expect(chapterList).toBeDefined();
 
     const partContent = result.find(
-      (element) => 
-        element.type === 'paragraph' && 
-        element.text === 'Part I: Fundamentals'
+      (element) => element.type === 'paragraph' && element.text === 'Part I: Fundamentals',
     );
     expect(partContent).toBeDefined();
 
     // Verify regular content still works
     const regularContent = result.find(
-      (element) => element.type === 'paragraph' && element.text === 'This is regular content.'
+      (element) => element.type === 'paragraph' && element.text === 'This is regular content.',
     );
     expect(regularContent).toBeDefined();
   });
 
   /**
    * Test for Task 3: Handles mixed containers (BOOKS)
-   * 
+   *
    * This test verifies that the extractor can handle containers with both
    * direct text content AND child elements, extracting both properly.
    * Based on the plan example: <div>Part I<p>Intro paragraph</p></div>
@@ -683,11 +683,11 @@ describe('BookChapterExtractor', () => {
     // Create the exact example from the plan
     const mixedDiv = document.createElement('div');
     mixedDiv.appendChild(document.createTextNode('Part I'));
-    
+
     const paragraph = document.createElement('p');
     paragraph.textContent = 'Intro paragraph';
     mixedDiv.appendChild(paragraph);
-    
+
     chapterDiv.appendChild(mixedDiv);
 
     root.appendChild(chapterDiv);
@@ -696,20 +696,16 @@ describe('BookChapterExtractor', () => {
 
     // We should extract both "Part I" and "Intro paragraph" as separate paragraphs
     // The exact behavior depends on our implementation, but both should be present
-    
+
     // Look for "Part I" text
     const partIText = result.find(
-      (element) => 
-        element.type === 'paragraph' && 
-        element.text.includes('Part I')
+      (element) => element.type === 'paragraph' && element.text.includes('Part I'),
     );
     expect(partIText).toBeDefined();
 
     // Look for "Intro paragraph" text
     const introText = result.find(
-      (element) => 
-        element.type === 'paragraph' && 
-        element.text.includes('Intro paragraph')
+      (element) => element.type === 'paragraph' && element.text.includes('Intro paragraph'),
     );
     expect(introText).toBeDefined();
 

@@ -24,14 +24,14 @@ export class TextNormalizer {
    */
   public static normalizeMathematicalCharacters(text: string): string {
     return text
-      .replace(/×/g, 'x')    // U+00D7 (multiplication sign) → x
-      .replace(/−/g, '-')    // U+2212 (mathematical minus sign) → - (hyphen)
-      .replace(/÷/g, '/')    // U+00F7 (division sign) → /
-      .replace(/±/g, '+/-')  // U+00B1 (plus-minus sign) → +/-
-      .replace(/≤/g, '<=')   // U+2264 (less than or equal) → <=
-      .replace(/≥/g, '>=')   // U+2265 (greater than or equal) → >=
-      .replace(/≠/g, '!=')   // U+2260 (not equal) → !=
-      .replace(/≈/g, '~=')   // U+2248 (approximately equal) → ~=
+      .replace(/×/g, 'x') // U+00D7 (multiplication sign) → x
+      .replace(/−/g, '-') // U+2212 (mathematical minus sign) → - (hyphen)
+      .replace(/÷/g, '/') // U+00F7 (division sign) → /
+      .replace(/±/g, '+/-') // U+00B1 (plus-minus sign) → +/-
+      .replace(/≤/g, '<=') // U+2264 (less than or equal) → <=
+      .replace(/≥/g, '>=') // U+2265 (greater than or equal) → >=
+      .replace(/≠/g, '!=') // U+2260 (not equal) → !=
+      .replace(/≈/g, '~=') // U+2248 (approximately equal) → ~=
       .replace(/°/g, 'deg'); // U+00B0 (degree symbol) → deg
   }
 
