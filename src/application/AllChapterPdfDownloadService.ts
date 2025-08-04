@@ -1,6 +1,7 @@
 import { TocExtractor } from '../domain/extraction/TocExtractor';
-import { BookChapterDownloadStateRepository } from '../infrastructure/BookChapterDownloadStateRepository';
+import { findNextChapterHref } from '../domain/extraction/findNextChapterHref';
 import { PersistentLogger } from '../infrastructure/logging/PersistentLogger';
+import { BulkChapterDownloadStateRepository } from '../infrastructure/BulkChapterDownloadStateRepository';
 import { BookChapterPdfService } from './BookChapterPdfService';
 import { waitForBookContent } from '../infrastructure/waitForBookContent';
 import { politeWait } from '../infrastructure/politeWait';
@@ -11,20 +12,20 @@ import { politeWait } from '../infrastructure/politeWait';
  */
 export class AllChapterPdfDownloadService {
   private tocExtractor: TocExtractor;
-  private stateRepo: BookChapterDownloadStateRepository;
   private bookChapterPdfService: BookChapterPdfService;
   private logger: PersistentLogger;
+  protected bulkStateRepo: BulkChapterDownloadStateRepository;
 
   constructor(
     tocExtractor: TocExtractor,
-    stateRepo: BookChapterDownloadStateRepository,
     bookChapterPdfService: BookChapterPdfService,
     logger: PersistentLogger = PersistentLogger.instance,
+    bulkStateRepo: BulkChapterDownloadStateRepository = new BulkChapterDownloadStateRepository(),
   ) {
     this.tocExtractor = tocExtractor;
-    this.stateRepo = stateRepo;
     this.bookChapterPdfService = bookChapterPdfService;
     this.logger = logger;
+    this.bulkStateRepo = bulkStateRepo;
   }
 
   /**
@@ -37,58 +38,60 @@ export class AllChapterPdfDownloadService {
       await this.logger.error('TOC root element not found. Cannot start bulk chapter download.');
       return;
     }
+    // Find the first real chapter/item link (skip "Part"/non-chapter headers)
     const tocItems = this.tocExtractor.extractItems(tocRoot);
-    this.stateRepo.save({
-      tocItems,
-      currentIndex: 0,
-    });
-
-    if (tocItems.length > 0) {
-      await this.logger.info('Bulk chapter download started.');
-      const nextUrl = new URL(tocItems[0].href, window.location.href).toString();
-      await politeWait(1000); // Brief wait before initial navigation
-      await this.logger.info(`Navigating to: ${nextUrl}`);
-      window.location.href = nextUrl;
+    if (!tocItems.length) {
+      await this.logger.error('No chapters found in TOC.');
+      return;
     }
+    // Set bulk download flag using repository
+    this.bulkStateRepo.setInProgress();
+    await this.logger.info('Bulk chapter download started.');
+    const firstUrl = new URL(tocItems[0].href, window.location.href).toString();
+    await politeWait(1000); // Brief wait before initial navigation
+    await this.logger.info(`Navigating to: ${firstUrl}`);
+    window.location.href = firstUrl;
   }
 
   /**
    * Resumes the bulk chapter download process if state exists.
    */
   async resumeDownloadIfNeeded(): Promise<void> {
-    const state = this.stateRepo.load();
-    if (!state) return;
-    await this.logger.info('Resuming bulk chapter download.');
+    // Only proceed if bulk download flag is set
+    if (!this.bulkStateRepo.isInProgress()) {
+      await this.logger.info('Bulk chapter download not in progress. Skipping resume logic.');
+      return;
+    }
 
     // Wait for book content to be fully loaded before proceeding
     try {
       await waitForBookContent();
+      await this.logger.info('Book content loaded. Ready to process chapter.');
     } catch (err) {
       await this.logger.error('Book content did not load in time. Aborting chapter download.');
       return;
     }
 
-    const { tocItems, currentIndex } = state;
-    if (!tocItems || tocItems.length === 0 || currentIndex >= tocItems.length) return;
+    // Use the document's title as the filename (or fallback)
+    const title = document.title && document.title.trim() ? document.title : 'null-title';
+    await this.logger.info(
+      `Starting PDF download for chapter: "${title}" (URL: ${window.location.href})`,
+    );
+    await this.bookChapterPdfService.downloadCurrentChapterAsPdf(`${title}.pdf`);
+    await this.logger.info(`PDF download initiated for: "${title}"`);
 
-    const currentItem = tocItems[currentIndex];
-    await this.logger.info(`Processing chapter: ${currentItem.title}`);
-    await this.bookChapterPdfService.downloadCurrentChapterAsPdf(`${currentItem.title}.pdf`);
-    await this.logger.info(`${currentItem.title} PDF download initiated.`);
-
-    if (currentIndex < tocItems.length - 1) {
-      // Not last chapter: increment index, save state, and navigate
-      this.stateRepo.save({ tocItems, currentIndex: currentIndex + 1 });
+    // Find the next chapter link using the utility
+    const nextHref = findNextChapterHref();
+    if (nextHref) {
+      await this.logger.info(`Next chapter detected. Preparing to navigate to: ${nextHref}`);
       await politeWait(); // Default 3 second wait before navigating to next chapter
-      const nextUrl = new URL(tocItems[currentIndex + 1].href, window.location.href).toString();
-      await this.logger.info(`Navigating to: ${nextUrl}`);
+      const nextUrl = new URL(nextHref, window.location.href).toString();
+      await this.logger.info(`Navigating to next chapter: ${nextUrl}`);
       window.location.href = nextUrl;
     } else {
-      // Last chapter: clear state and log completion
-      this.stateRepo.clear();
-      await this.logger.info('Bulk chapter download completed.');
-
-      // Show a notification to the user - careful about wording, not guaranteeing success
+      await this.logger.info('No next chapter found. Bulk chapter download completed.');
+      // Clear the bulk download flag using repository
+      this.bulkStateRepo.clear();
       alert(
         'All chapters have been processed. Please check the extension logs for any errors or warnings.',
       );
