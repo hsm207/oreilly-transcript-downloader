@@ -5,11 +5,18 @@
  *
  * Content types extracted:
  * - Headings (h1-h6)
- * - Paragraphs and text content
+ * - Paragraphs and text content (including direct text nodes from containers)
  * - Images with their alt text
  * - Lists (ordered and unordered)
  * - Tables with headers, data cells, and captions
  * - Captions for figures and tables
+ * - Content navigation elements (TOC) with semantic attributes
+ *
+ * Key features:
+ * - Extracts direct text nodes from containers (e.g., <div>Part I</div>)
+ * - Smart navigation handling: processes content navs, skips UI navs
+ * - Handles mixed containers with both text and child elements
+ * - Preserves document structure and semantic meaning
  *
  * Note: Current implementation has limited handling of footnote markers that appear as standalone
  * characters (like asterisks) in the text rather than as proper HTML elements. These may be
@@ -56,6 +63,17 @@ export class BookChapterExtractor {
       return;
     }
 
+    // Special handling for nav elements - check if it's a content nav or UI nav
+    if (tagName === 'nav') {
+      if (BookChapterExtractor.shouldSkipNavElement(htmlElement)) {
+        this.logger.debug(`Skipping UI nav element`);
+        return;
+      } else {
+        this.logger.debug(`Processing content nav element`);
+        // Continue processing as a container
+      }
+    }
+
     if (this.processHeading(htmlElement, tagName, elements)) return;
     if (this.processParagraphOrCaption(htmlElement, tagName, classList, elements)) return;
     if (this.processPreformatted(htmlElement, tagName, elements)) return;
@@ -68,17 +86,47 @@ export class BookChapterExtractor {
   }
 
   private static shouldSkipElement(tagName: string): boolean {
-    return [
-      'script',
-      'style',
-      'meta',
-      'link',
-      'head',
-      'iframe',
-      'noscript',
-      'template',
-      'nav',
-    ].includes(tagName);
+    return ['script', 'style', 'meta', 'link', 'head', 'iframe', 'noscript', 'template'].includes(
+      tagName,
+    );
+  }
+
+  /**
+   * Determines if a nav element should be skipped based on its semantic attributes.
+   * Content navs (TOC) should be processed, while UI navs should be skipped.
+   *
+   * UI navs typically have:
+   * - Generic CSS classes (css-0, _statusBar_)
+   * - No semantic attributes
+   *
+   * Content navs typically have:
+   * - Semantic attributes like role="doc-toc" or epub:type="toc"
+   * - Meaningful content for document navigation
+   *
+   * @param navElement The nav HTML element to check
+   * @returns true if the nav should be skipped, false if it should be processed
+   */
+  private static shouldSkipNavElement(navElement: HTMLElement): boolean {
+    // Check for semantic attributes that indicate content navigation
+    const role = navElement.getAttribute('role');
+    const epubType = navElement.getAttribute('epub:type');
+
+    // Include navs with semantic TOC attributes
+    if (role === 'doc-toc' || epubType === 'toc') {
+      return false; // Don't skip, this is content
+    }
+
+    // Check for generic UI nav classes (these should be skipped)
+    const classList = navElement.classList;
+    const hasGenericUIClasses =
+      classList.contains('css-0') || classList.contains('_statusBar_') || classList.length === 0; // Empty class list might be UI nav
+
+    if (hasGenericUIClasses) {
+      return true; // Skip UI navs
+    }
+
+    // Default to skipping if we can't determine the type
+    return true;
   }
 
   private processHeading(
@@ -255,6 +303,26 @@ export class BookChapterExtractor {
     return true;
   }
 
+  /**
+   * Processes container elements that may contain mixed content.
+   *
+   * Handles containers that can have:
+   * - Direct text nodes (e.g., <div>Part I</div>)
+   * - Child elements (e.g., <div><p>Content</p></div>)
+   * - Mixed content (e.g., <div>Part I<p>Content</p></div>)
+   *
+   * Strategy:
+   * 1. Extract any direct text nodes as separate paragraphs
+   * 2. Process all child elements normally
+   *
+   * This preserves document structure while capturing content that might
+   * otherwise be lost in containers with mixed content.
+   *
+   * @param htmlElement The container element to process
+   * @param tagName The lowercase tag name
+   * @param classList The element's class list
+   * @param elements The array to collect extracted elements
+   */
   private processContainer(
     htmlElement: HTMLElement,
     tagName: string,
@@ -272,6 +340,7 @@ export class BookChapterExtractor {
       'header',
       'footer',
       'aside',
+      'nav', // Allow nav elements to be processed as containers
     ];
     const isSpecialContainer =
       htmlElement.id === 'book-content' ||
@@ -282,6 +351,27 @@ export class BookChapterExtractor {
 
     if (containerElements.includes(tagName) || isSpecialContainer) {
       this.logger.debug(`Processing children of container: ${tagName}`);
+
+      // First, extract any direct text nodes as paragraphs
+      const directTextNodes: string[] = [];
+      for (const child of Array.from(htmlElement.childNodes)) {
+        if (child.nodeType === Node.TEXT_NODE) {
+          const textContent = child.textContent?.trim();
+          if (textContent) {
+            directTextNodes.push(textContent);
+          }
+        }
+      }
+
+      // Add each direct text node as a separate paragraph
+      for (const textContent of directTextNodes) {
+        this.logger.debug(
+          `Adding direct text from container as paragraph: "${textContent.substring(0, 30)}${textContent.length > 30 ? '...' : ''}"`,
+        );
+        elements.push({ type: 'paragraph', text: textContent });
+      }
+
+      // Then process all child elements normally
       for (const child of Array.from(htmlElement.childNodes)) {
         this.processNode(child, elements);
       }
