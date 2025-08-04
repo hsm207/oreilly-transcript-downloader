@@ -549,9 +549,6 @@ describe('BookChapterExtractor', () => {
 
     const result = extractor.extract(root);
 
-    // Debug: Let's see what we actually get
-    console.log('Direct text extraction test - Actual elements:', JSON.stringify(result, null, 2));
-
     // We expect to find the direct text nodes as paragraphs
     const directTextParagraphs = result.filter(
       (element) => 
@@ -586,5 +583,89 @@ describe('BookChapterExtractor', () => {
       (element) => element.type === 'paragraph' && element.text === 'This chapter covers the basics.'
     );
     expect(regularParagraph).toBeDefined();
+  });
+
+  /**
+   * Test for Task 2: Skips only UI navs, not content navs (BOOKS)
+   * 
+   * This test verifies that the extractor can distinguish between:
+   * - UI navigation elements that should be skipped
+   * - Content navigation elements (TOC) that should be included
+   */
+  it('should skip UI navs but include content navs with semantic attributes', () => {
+    const chapterDiv = document.createElement('div');
+    chapterDiv.className = 'chapter';
+
+    // Create a UI nav that should be skipped (generic classes)
+    const uiNav = document.createElement('nav');
+    uiNav.className = 'css-0 _statusBar_';
+    uiNav.innerHTML = '<a href="#">Home</a> | <a href="#">Settings</a>';
+    chapterDiv.appendChild(uiNav);
+
+    // Create a content nav with role="doc-toc" that should be included
+    const tocNav1 = document.createElement('nav');
+    tocNav1.setAttribute('role', 'doc-toc');
+    tocNav1.innerHTML = `
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#ch1">Chapter 1: Introduction</a></li>
+        <li><a href="#ch2">Chapter 2: Getting Started</a></li>
+      </ul>
+    `;
+    chapterDiv.appendChild(tocNav1);
+
+    // Create another content nav with epub:type="toc" that should be included
+    const tocNav2 = document.createElement('nav');
+    tocNav2.setAttribute('epub:type', 'toc');
+    tocNav2.innerHTML = `
+      <p>Part I: Fundamentals</p>
+      <p>Part II: Advanced Topics</p>
+    `;
+    chapterDiv.appendChild(tocNav2);
+
+    // Add a regular paragraph for comparison
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'This is regular content.';
+    chapterDiv.appendChild(paragraph);
+
+    root.appendChild(chapterDiv);
+
+    const result = extractor.extract(root);
+
+    // Verify we DON'T find content from UI nav
+    const uiNavContent = result.find(
+      (element) => 
+        element.type === 'paragraph' && 
+        (element.text.includes('Home') || element.text.includes('Settings'))
+    );
+    expect(uiNavContent).toBeUndefined();
+
+    // Verify we DO find content from semantic TOC navs
+    const tocHeading = result.find(
+      (element) => element.type === 'heading' && element.text === 'Table of Contents'
+    );
+    expect(tocHeading).toBeDefined();
+
+    // The chapter links are extracted as list items, not paragraphs
+    const chapterList = result.find(
+      (element) => 
+        element.type === 'list' && 
+        element.items && 
+        element.items.some((item: string) => item.includes('Chapter 1: Introduction'))
+    );
+    expect(chapterList).toBeDefined();
+
+    const partContent = result.find(
+      (element) => 
+        element.type === 'paragraph' && 
+        element.text === 'Part I: Fundamentals'
+    );
+    expect(partContent).toBeDefined();
+
+    // Verify regular content still works
+    const regularContent = result.find(
+      (element) => element.type === 'paragraph' && element.text === 'This is regular content.'
+    );
+    expect(regularContent).toBeDefined();
   });
 });
