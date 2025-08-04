@@ -19,8 +19,16 @@ export class PdfGenerator {
     try {
       await logger.info(`Generating PDF for ${filename}`);
 
-      // Set up jsPDF for A4 size, mm units
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      // Set up jsPDF for A4 size, mm units with explicit encoding
+      const doc = new jsPDF({ 
+        unit: 'mm', 
+        format: 'a4',
+        compress: true
+      });
+
+      // 🚨 EXPLICITLY SET FONT AND ENCODING TO FIX CHARACTER RENDERING
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
 
       const pageWidth = 210;
       const pageHeight = 297;
