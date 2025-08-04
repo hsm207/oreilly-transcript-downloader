@@ -30,18 +30,6 @@ export class BookChapterExtractor {
   // TODO: Improve handling of inline footnote markers (like asterisks) that aren't wrapped in HTML elements
 
   /**
-   * Cleans the text content of an HTML element by removing footnotes and then normalizing it.
-   * @param element The HTML element from which to extract and clean text.
-   * @returns Cleaned and normalized text content.
-   */
-  /**
-   * @deprecated Use TextNormalizer.cleanNodeText
-   */
-  private static cleanNodeText(element: HTMLElement): string {
-    return TextNormalizer.cleanNodeText(element);
-  }
-
-  /**
    * Recursively processes a DOM node and its children to extract BookChapterElements.
    * @param node The DOM node to process.
    * @param elements An array where extracted BookChapterElement objects are collected.
@@ -105,7 +93,7 @@ export class BookChapterExtractor {
       const parts: string[] = [];
       htmlElement.childNodes.forEach((child) => {
         if (child.nodeType === Node.ELEMENT_NODE) {
-          const childText = BookChapterExtractor.cleanNodeText(child as HTMLElement);
+          const childText = TextNormalizer.cleanNodeText(child as HTMLElement);
           if (childText) parts.push(childText);
         } else if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
           parts.push(child.textContent.trim());
@@ -113,7 +101,7 @@ export class BookChapterExtractor {
       });
       text = parts.join(' ');
     } else {
-      text = BookChapterExtractor.cleanNodeText(htmlElement);
+      text = TextNormalizer.cleanNodeText(htmlElement);
     }
     if (text) {
       this.logger.debug(
@@ -151,7 +139,7 @@ export class BookChapterExtractor {
       return true;
     }
 
-    const text = BookChapterExtractor.cleanNodeText(htmlElement);
+    const text = TextNormalizer.cleanNodeText(htmlElement);
     if (!text) return true;
 
     const isChapterOpener = classList.contains('chapterOpenerText');
@@ -193,7 +181,7 @@ export class BookChapterExtractor {
         childNode.nodeType === Node.ELEMENT_NODE &&
         (childNode as HTMLElement).tagName.toLowerCase() === 'li'
       ) {
-        const itemText = BookChapterExtractor.cleanNodeText(childNode as HTMLElement);
+        const itemText = TextNormalizer.cleanNodeText(childNode as HTMLElement);
         if (itemText) items.push(itemText);
       }
     }
@@ -241,7 +229,7 @@ export class BookChapterExtractor {
     elements: BookChapterElement[],
   ): boolean {
     if (tagName !== 'cite') return false;
-    const text = BookChapterExtractor.cleanNodeText(htmlElement);
+    const text = TextNormalizer.cleanNodeText(htmlElement);
     if (text) {
       elements.push({ type: 'paragraph', text });
     }

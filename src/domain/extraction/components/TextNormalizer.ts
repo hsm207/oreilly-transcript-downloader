@@ -17,6 +17,25 @@ export class TextNormalizer {
   }
 
   /**
+   * Normalizes mathematical Unicode characters to ASCII equivalents for better PDF compatibility.
+   * Many PDF generators struggle with mathematical Unicode symbols, causing rendering issues.
+   * @param text The input text that may contain mathematical symbols
+   * @returns Text with mathematical symbols converted to ASCII equivalents
+   */
+  public static normalizeMathematicalCharacters(text: string): string {
+    return text
+      .replace(/×/g, 'x')    // U+00D7 (multiplication sign) → x
+      .replace(/−/g, '-')    // U+2212 (mathematical minus sign) → - (hyphen)
+      .replace(/÷/g, '/')    // U+00F7 (division sign) → /
+      .replace(/±/g, '+/-')  // U+00B1 (plus-minus sign) → +/-
+      .replace(/≤/g, '<=')   // U+2264 (less than or equal) → <=
+      .replace(/≥/g, '>=')   // U+2265 (greater than or equal) → >=
+      .replace(/≠/g, '!=')   // U+2260 (not equal) → !=
+      .replace(/≈/g, '~=')   // U+2248 (approximately equal) → ~=
+      .replace(/°/g, 'deg'); // U+00B0 (degree symbol) → deg
+  }
+
+  /**
    * Strips all emoji characters from text.
    * TODO: Future improvement - explore proper emoji rendering in jsPDF for better user experience.
    * For now, emojis are stripped to prevent garbled characters in PDF output.
@@ -62,6 +81,9 @@ export class TextNormalizer {
       }
     });
     let text = clonedElement.textContent || '';
-    return TextNormalizer.normalizeText(text);
+    // Apply all normalizations: quotes, whitespace, AND mathematical characters for PDF compatibility
+    text = TextNormalizer.normalizeText(text);
+    text = TextNormalizer.normalizeMathematicalCharacters(text);
+    return text;
   }
 }
