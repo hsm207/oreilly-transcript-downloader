@@ -86,30 +86,23 @@ export class BookChapterExtractor {
   }
 
   private static shouldSkipElement(tagName: string): boolean {
-    return [
-      'script',
-      'style',
-      'meta',
-      'link',
-      'head',
-      'iframe',
-      'noscript',
-      'template',
-    ].includes(tagName);
+    return ['script', 'style', 'meta', 'link', 'head', 'iframe', 'noscript', 'template'].includes(
+      tagName,
+    );
   }
 
   /**
    * Determines if a nav element should be skipped based on its semantic attributes.
    * Content navs (TOC) should be processed, while UI navs should be skipped.
-   * 
+   *
    * UI navs typically have:
    * - Generic CSS classes (css-0, _statusBar_)
    * - No semantic attributes
-   * 
+   *
    * Content navs typically have:
    * - Semantic attributes like role="doc-toc" or epub:type="toc"
    * - Meaningful content for document navigation
-   * 
+   *
    * @param navElement The nav HTML element to check
    * @returns true if the nav should be skipped, false if it should be processed
    */
@@ -117,23 +110,21 @@ export class BookChapterExtractor {
     // Check for semantic attributes that indicate content navigation
     const role = navElement.getAttribute('role');
     const epubType = navElement.getAttribute('epub:type');
-    
+
     // Include navs with semantic TOC attributes
     if (role === 'doc-toc' || epubType === 'toc') {
       return false; // Don't skip, this is content
     }
-    
+
     // Check for generic UI nav classes (these should be skipped)
     const classList = navElement.classList;
-    const hasGenericUIClasses = 
-      classList.contains('css-0') || 
-      classList.contains('_statusBar_') ||
-      classList.length === 0; // Empty class list might be UI nav
-    
+    const hasGenericUIClasses =
+      classList.contains('css-0') || classList.contains('_statusBar_') || classList.length === 0; // Empty class list might be UI nav
+
     if (hasGenericUIClasses) {
       return true; // Skip UI navs
     }
-    
+
     // Default to skipping if we can't determine the type
     return true;
   }
@@ -314,19 +305,19 @@ export class BookChapterExtractor {
 
   /**
    * Processes container elements that may contain mixed content.
-   * 
+   *
    * Handles containers that can have:
    * - Direct text nodes (e.g., <div>Part I</div>)
    * - Child elements (e.g., <div><p>Content</p></div>)
    * - Mixed content (e.g., <div>Part I<p>Content</p></div>)
-   * 
+   *
    * Strategy:
    * 1. Extract any direct text nodes as separate paragraphs
    * 2. Process all child elements normally
-   * 
+   *
    * This preserves document structure while capturing content that might
    * otherwise be lost in containers with mixed content.
-   * 
+   *
    * @param htmlElement The container element to process
    * @param tagName The lowercase tag name
    * @param classList The element's class list
@@ -360,7 +351,7 @@ export class BookChapterExtractor {
 
     if (containerElements.includes(tagName) || isSpecialContainer) {
       this.logger.debug(`Processing children of container: ${tagName}`);
-      
+
       // First, extract any direct text nodes as paragraphs
       const directTextNodes: string[] = [];
       for (const child of Array.from(htmlElement.childNodes)) {
@@ -371,7 +362,7 @@ export class BookChapterExtractor {
           }
         }
       }
-      
+
       // Add each direct text node as a separate paragraph
       for (const textContent of directTextNodes) {
         this.logger.debug(
@@ -379,7 +370,7 @@ export class BookChapterExtractor {
         );
         elements.push({ type: 'paragraph', text: textContent });
       }
-      
+
       // Then process all child elements normally
       for (const child of Array.from(htmlElement.childNodes)) {
         this.processNode(child, elements);
