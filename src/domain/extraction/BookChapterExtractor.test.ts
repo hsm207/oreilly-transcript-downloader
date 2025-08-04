@@ -516,4 +516,75 @@ describe('BookChapterExtractor', () => {
       'The captured data is converted',
     );
   });
+
+  /**
+   * Test for Task 1: Extracts direct text nodes from containers (BOOKS)
+   * 
+   * This test verifies that the extractor can handle direct text nodes inside containers.
+   * Example: <div>Part I</div> should extract "Part I" as a paragraph.
+   */
+  it('should extract direct text nodes from containers as paragraphs', () => {
+    const chapterDiv = document.createElement('div');
+    chapterDiv.className = 'chapter';
+
+    // Create a div with direct text content (no child elements)
+    const partDiv = document.createElement('div');
+    partDiv.textContent = 'Part I';
+    chapterDiv.appendChild(partDiv);
+
+    // Create another div with direct text content
+    const chapterTitleDiv = document.createElement('div');
+    chapterTitleDiv.textContent = 'Introduction to Modern Programming';
+    chapterDiv.appendChild(chapterTitleDiv);
+
+    // Create a div with mixed content (direct text + child elements)
+    const mixedDiv = document.createElement('div');
+    mixedDiv.appendChild(document.createTextNode('Chapter Overview: '));
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'This chapter covers the basics.';
+    mixedDiv.appendChild(paragraph);
+    chapterDiv.appendChild(mixedDiv);
+
+    root.appendChild(chapterDiv);
+
+    const result = extractor.extract(root);
+
+    // Debug: Let's see what we actually get
+    console.log('Direct text extraction test - Actual elements:', JSON.stringify(result, null, 2));
+
+    // We expect to find the direct text nodes as paragraphs
+    const directTextParagraphs = result.filter(
+      (element) => 
+        element.type === 'paragraph' && 
+        (element.text === 'Part I' || 
+         element.text === 'Introduction to Modern Programming' ||
+         element.text === 'Chapter Overview:')
+    );
+
+    expect(directTextParagraphs.length).toBeGreaterThan(0);
+    
+    // Verify we can find "Part I" as a paragraph
+    const partIParagraph = result.find(
+      (element) => element.type === 'paragraph' && element.text === 'Part I'
+    );
+    expect(partIParagraph).toBeDefined();
+
+    // Verify we can find the chapter title as a paragraph
+    const chapterTitleParagraph = result.find(
+      (element) => element.type === 'paragraph' && element.text === 'Introduction to Modern Programming'
+    );
+    expect(chapterTitleParagraph).toBeDefined();
+
+    // Verify we can find the mixed content direct text as a paragraph
+    const overviewParagraph = result.find(
+      (element) => element.type === 'paragraph' && element.text === 'Chapter Overview:'
+    );
+    expect(overviewParagraph).toBeDefined();
+
+    // Also verify that regular paragraph still works
+    const regularParagraph = result.find(
+      (element) => element.type === 'paragraph' && element.text === 'This chapter covers the basics.'
+    );
+    expect(regularParagraph).toBeDefined();
+  });
 });
