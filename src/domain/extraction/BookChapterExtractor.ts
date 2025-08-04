@@ -56,6 +56,17 @@ export class BookChapterExtractor {
       return;
     }
 
+    // Special handling for nav elements - check if it's a content nav or UI nav
+    if (tagName === 'nav') {
+      if (BookChapterExtractor.shouldSkipNavElement(htmlElement)) {
+        this.logger.debug(`Skipping UI nav element`);
+        return;
+      } else {
+        this.logger.debug(`Processing content nav element`);
+        // Continue processing as a container
+      }
+    }
+
     if (this.processHeading(htmlElement, tagName, elements)) return;
     if (this.processParagraphOrCaption(htmlElement, tagName, classList, elements)) return;
     if (this.processPreformatted(htmlElement, tagName, elements)) return;
@@ -77,8 +88,38 @@ export class BookChapterExtractor {
       'iframe',
       'noscript',
       'template',
-      'nav',
     ].includes(tagName);
+  }
+
+  /**
+   * Determines if a nav element should be skipped based on its semantic attributes.
+   * Content navs (TOC) should be processed, while UI navs should be skipped.
+   * @param navElement The nav HTML element to check
+   * @returns true if the nav should be skipped, false if it should be processed
+   */
+  private static shouldSkipNavElement(navElement: HTMLElement): boolean {
+    // Check for semantic attributes that indicate content navigation
+    const role = navElement.getAttribute('role');
+    const epubType = navElement.getAttribute('epub:type');
+    
+    // Include navs with semantic TOC attributes
+    if (role === 'doc-toc' || epubType === 'toc') {
+      return false; // Don't skip, this is content
+    }
+    
+    // Check for generic UI nav classes (these should be skipped)
+    const classList = navElement.classList;
+    const hasGenericUIClasses = 
+      classList.contains('css-0') || 
+      classList.contains('_statusBar_') ||
+      classList.length === 0; // Empty class list might be UI nav
+    
+    if (hasGenericUIClasses) {
+      return true; // Skip UI navs
+    }
+    
+    // Default to skipping if we can't determine the type
+    return true;
   }
 
   private processHeading(
@@ -272,6 +313,7 @@ export class BookChapterExtractor {
       'header',
       'footer',
       'aside',
+      'nav', // Allow nav elements to be processed as containers
     ];
     const isSpecialContainer =
       htmlElement.id === 'book-content' ||
