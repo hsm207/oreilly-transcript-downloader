@@ -10,5 +10,6 @@ export enum ContentType {
   Video = 'video',
   Book = 'book',
   Live = 'live',
+  Quiz = 'quiz',
   // Add more types as needed!
 }

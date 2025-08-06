@@ -154,6 +154,48 @@ describe('AllChapterPdfDownloadService', () => {
     expect(mockLogger.info).toHaveBeenCalledWith('Book content loaded. Ready to process chapter.');
   });
 
+  it('should skip Quiz pages (Practice Quiz) and navigate to next chapter', async () => {
+    waitForBookContentSpy.mockRejectedValueOnce(new Error('timeout'));
+    (mockBulkStateRepo.isInProgress as any).mockReturnValue(true);
+    document.body.innerHTML = `
+      <div class="test-title-text" title="Practice Quiz">Practice Quiz</div>
+      <div data-testid="statusBarNext">
+        <a href="/chapter/next">Next Chapter</a>
+      </div>
+    `;
+    (window.location as any).href = 'https://learning.oreilly.com/chapter/practice-quiz';
+    const service = new AllChapterPdfDownloadService(
+      mockTocExtractor,
+      mockBookChapterPdfService,
+      mockLogger,
+      mockBulkStateRepo,
+    );
+    await service.resumeDownloadIfNeeded();
+    expect(window.location.href).toBe('https://learning.oreilly.com/chapter/next');
+    expect(mockLogger.info).toHaveBeenCalledWith('Quiz page detected after content timeout. Skipping to next chapter.');
+  });
+
+  it('should skip Quiz pages (Final Quiz) and navigate to next chapter', async () => {
+    waitForBookContentSpy.mockRejectedValueOnce(new Error('timeout'));
+    (mockBulkStateRepo.isInProgress as any).mockReturnValue(true);
+    document.body.innerHTML = `
+      <div class="test-title-text" title="Final Quiz">Final Quiz</div>
+      <div data-testid="statusBarNext">
+        <a href="/chapter/next">Next Chapter</a>
+      </div>
+    `;
+    (window.location as any).href = 'https://learning.oreilly.com/chapter/final-quiz';
+    const service = new AllChapterPdfDownloadService(
+      mockTocExtractor,
+      mockBookChapterPdfService,
+      mockLogger,
+      mockBulkStateRepo,
+    );
+    await service.resumeDownloadIfNeeded();
+    expect(window.location.href).toBe('https://learning.oreilly.com/chapter/next');
+    expect(mockLogger.info).toHaveBeenCalledWith('Quiz page detected after content timeout. Skipping to next chapter.');
+  });
+
   it('should skip resume logic when bulk download is not in progress', async () => {
     // Arrange: bulk download is not in progress
     (mockBulkStateRepo.isInProgress as any).mockReturnValue(false);
@@ -169,18 +211,14 @@ describe('AllChapterPdfDownloadService', () => {
     expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).not.toHaveBeenCalled();
   });
 
-  it('should abort and log error if book content does not load in time', async () => {
-    // Arrange: bulk download in progress but content fails to load
+  it('should abort and log an error if book content does not load in time and the page is not a Quiz', async () => {
+    document.body.innerHTML = '';
     (mockBulkStateRepo.isInProgress as any).mockReturnValue(true);
     waitForBookContentSpy.mockRejectedValue(new Error('Book content did not load in time.'));
-
-    // Act
     await service.resumeDownloadIfNeeded();
-
-    // Assert
     expect(waitForBookContentSpy).toHaveBeenCalled();
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'Book content did not load in time. Aborting chapter download.',
+      'Book content did not load in time and page is not a Quiz. Aborting chapter download.',
     );
     expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).not.toHaveBeenCalled();
   });

@@ -12,12 +12,35 @@ const OREILLY_LIVE_URL_REGEX =
 
 /**
  * Detects the content type of the current page.
+ *
+ * DESIGN NOTE: This function takes both a Document and a URL as arguments.
+ * In production, always pass window.document and window.location.href.
+ *
+ * Why not just use doc.location.href? Because JSDOM (used in tests) does not allow
+ * mocking or redefining the location property on HTMLDocument, making it impossible
+ * to test URL-based logic in a pure, reliable way. By accepting the URL as a parameter,
+ * we keep the function pure, testable, and avoid JSDOM drama.
+ *
  * Add new types by extending the regexes and switch below.
- * @param url The URL of the page to detect content type for.
+ * @param doc The Document to inspect for DOM markers (e.g., quiz pages). Can be null for URL-only detection.
+ * @param url The URL of the page to detect content type for
  * @returns ContentType value if detected, or null.
  */
-export function detectContentType(url: string): ContentType | null {
+export function detectContentType(doc: Document | null, url: string): ContentType | null {
   if (!url) return null;
+
+
+  // Check for Quiz marker in the DOM (Practice or Final Quiz)
+  if (doc) {
+    const quizDiv = doc.querySelector('div.test-title-text[title="Practice Quiz"], div.test-title-text[title="Final Quiz"]');
+    if (
+      quizDiv &&
+      (quizDiv.textContent?.trim() === 'Practice Quiz' || quizDiv.textContent?.trim() === 'Final Quiz')
+    ) {
+      return ContentType.Quiz;
+    }
+  }
+
   if (OREILLY_VIDEO_URL_REGEX.test(url)) {
     return ContentType.Video;
   }
