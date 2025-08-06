@@ -14,16 +14,18 @@
     "default_popup": "src/popup.html"
   },
   "background": {
-    "service_worker": "src/background.ts"
+    "service_worker": "src/background.js"
   },
-  "permissions": ["tabs"],
+  "permissions": ["tabs", "webRequest"],
+  "host_permissions": ["https://event.on24.com/*"],
   "content_scripts": [
     {
       "matches": [
         "https://learning.oreilly.com/videos/*",
-        "https://learning.oreilly.com/library/view/*"
+        "https://learning.oreilly.com/library/view/*",
+        "https://event.on24.com/*"
       ],
-      "js": ["src/contentScript.ts"],
+      "js": ["src/contentScript.js"],
       "run_at": "document_idle"
     }
   ]

@@ -1,7 +1,8 @@
 // Application: PopupService
 // Service for handling popup-related application logic.
 
-import { isOReillyVideoPage } from '../domain/content/ContentDetector';
+import { detectContentType } from '../domain/content/ContentDetector';
+import { ContentType } from '../domain/content/ContentType';
 /**
  * Sends a message to the content script of the active tab to initiate download of all chapters as PDFs.
  */
@@ -59,25 +60,35 @@ export function requestAllTranscriptsDownload(): void {
 }
 
 /**
- * Retrieves the current tab's URL and determines if it's an O'Reilly video page.
- * @returns A promise that resolves to an object indicating if the current page is a video page.
+ * Retrieves the current tab's URL and determines its O'Reilly content type (Video, Book, Live, etc).
+ * @returns A promise that resolves to an object with the detected contentType (or null) and the tab's URL.
+ *
+ * Example return values:
+ *   { contentType: ContentType.Video, url: 'https://learning.oreilly.com/videos/...' }
+ *   { contentType: ContentType.Book, url: 'https://learning.oreilly.com/library/view/...' }
+ *   { contentType: ContentType.Live, url: 'https://event.on24.com/eventRegistration/console/apollox/mainEvent?...' }
+ *   { contentType: null, url: null } // Not an O'Reilly page or no tab found
  */
-export async function getCurrentPageInfo(): Promise<{ isVideoPage: boolean; url: string | null }> {
+export async function getCurrentPageInfo(): Promise<{
+  contentType: ContentType | null;
+  url: string | null;
+}> {
   return new Promise((resolve) => {
     if (typeof chrome !== 'undefined' && chrome.tabs) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
         const currentTab = tabs && tabs[0];
         if (currentTab && currentTab.url) {
           const url = currentTab.url;
-          resolve({ isVideoPage: isOReillyVideoPage(url), url });
+          const contentType = detectContentType(url);
+          resolve({ contentType, url });
         } else {
-          resolve({ isVideoPage: false, url: null }); // No URL or tab found
+          resolve({ contentType: null, url: null }); // No URL or tab found
         }
       });
     } else {
       // Fallback for environments where chrome.tabs is not available (e.g., testing)
       console.warn('chrome.tabs API not available. Returning default page info.');
-      resolve({ isVideoPage: false, url: null });
+      resolve({ contentType: null, url: null });
     }
   });
 }
@@ -94,6 +105,25 @@ export function requestTranscriptDownload(): void {
         console.log('DOWNLOAD_TRANSCRIPT message sent to tab:', tabId);
       } else {
         console.warn('No active tab found to send DOWNLOAD_TRANSCRIPT message.');
+      }
+    });
+  } else {
+    console.warn('chrome.tabs API not available for sending message.');
+  }
+}
+
+/**
+ * Sends a message to the content script of the active tab to initiate live class transcript download.
+ */
+export function requestLiveTranscriptDownload(): void {
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+      const tabId = tabs[0]?.id;
+      if (tabId) {
+        chrome.tabs.sendMessage(tabId, { action: 'DOWNLOAD_LIVE_EVENT_TRANSCRIPT' });
+        console.log('DOWNLOAD_LIVE_EVENT_TRANSCRIPT message sent to tab:', tabId);
+      } else {
+        console.warn('No active tab found to send DOWNLOAD_LIVE_EVENT_TRANSCRIPT message.');
       }
     });
   } else {

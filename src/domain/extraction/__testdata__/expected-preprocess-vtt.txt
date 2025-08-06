@@ -1,0 +1,5 @@
+00:00:00.040 --> 00:00:03.720: Everyone and welcome to writing effective prompts for Chachi GPT.
+00:00:04.080 --> 00:00:06.968: I am Andrew Eric with Riley Media, and I will
+00:00:07.032 --> 00:00:09.599: be your facilitator for today's session.
+00:00:10.080 --> 00:00:13.000: Our instructor for today's course is Sarah Tamsin.
+00:00:13.720 --> 00:00:16.782: A quick reminder of a couple of best practices before
