@@ -102,10 +102,11 @@ export class LiveEventContentOrchestrator {
    * Creates an instance with default dependencies and calls downloadLiveEventTranscript.
    */
   static async downloadLiveEventTranscript(): Promise<void> {
+    // Always bind fetch to window to avoid Illegal invocation errors in Chrome extensions
     const orchestrator = new LiveEventContentOrchestrator(
       PersistentLogger.instance,
       chrome.runtime.sendMessage,
-      fetch,
+      window.fetch.bind(window),
       downloadFile,
     );
     return orchestrator.downloadLiveEventTranscript();
