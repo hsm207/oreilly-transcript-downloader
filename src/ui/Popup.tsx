@@ -1,5 +1,6 @@
 // UI: Popup
 // Stub for popup UI component
+
 import { useEffect, useState } from 'react';
 import styles from './Popup.module.css';
 import {
@@ -9,16 +10,16 @@ import {
   requestChapterPdfDownload,
   requestAllChaptersPdfDownload,
 } from '../application/PopupService';
+import { ContentType } from '../domain/content/ContentType';
+
 
 export const Popup = () => {
-  const [isVideoPage, setIsVideoPage] = useState(false);
-  const [isBookPage, setIsBookPage] = useState(false);
+  const [contentType, setContentType] = useState<ContentType | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getCurrentPageInfo().then((pageInfo) => {
-      setIsVideoPage(pageInfo.isVideoPage);
-      setIsBookPage(!!pageInfo.url && /\/library\/view\//.test(pageInfo.url));
+      setContentType(pageInfo.contentType);
       setLoading(false);
     });
   }, []);
@@ -38,7 +39,7 @@ export const Popup = () => {
   return (
     <div className={styles.popupContainer}>
       <h3 className={styles.popupTitle}>O'Reilly Transcript Downloader</h3>
-      {isVideoPage && (
+      {contentType === ContentType.Video && (
         <>
           <button className={styles.downloadButton} onClick={handleDownload}>
             Download Transcript
@@ -52,7 +53,7 @@ export const Popup = () => {
           </button>
         </>
       )}
-      {isBookPage && (
+      {contentType === ContentType.Book && (
         <>
           <button
             className={styles.downloadButton}
@@ -70,9 +71,16 @@ export const Popup = () => {
           </button>
         </>
       )}
-      {!isVideoPage && !isBookPage && (
+      {contentType === ContentType.Live && (
+        <>
+          <button className={styles.downloadButton} onClick={handleDownload}>
+            Download Transcript
+          </button>
+        </>
+      )}
+      {contentType === null && (
         <div style={{ textAlign: 'center', color: '#ffb199', fontWeight: 500 }}>
-          Download is only available on O'Reilly video or book pages.
+          Download is only available on O'Reilly video, book, or live class pages.
         </div>
       )}
     </div>
