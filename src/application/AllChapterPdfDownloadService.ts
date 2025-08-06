@@ -5,6 +5,8 @@ import { BulkChapterDownloadStateRepository } from '../infrastructure/BulkChapte
 import { BookChapterPdfService } from './BookChapterPdfService';
 import { waitForBookContent } from '../infrastructure/waitForBookContent';
 import { politeWait } from '../infrastructure/politeWait';
+import { detectContentType } from '../domain/content/ContentDetector';
+import { ContentType } from '../domain/content/ContentType';
 
 /**
  * Service to orchestrate downloading all chapters as PDFs for a book.
@@ -60,6 +62,29 @@ export class AllChapterPdfDownloadService {
     // Only proceed if bulk download flag is set
     if (!this.bulkStateRepo.isInProgress()) {
       await this.logger.info('Bulk chapter download not in progress. Skipping resume logic.');
+      return;
+    }
+
+    // Check if this is a Practice Quiz page
+    const contentType = detectContentType(document, window.location.href);
+    if (contentType === ContentType.PracticeQuiz) {
+      await this.logger.info('Practice Quiz page detected. Skipping to next chapter.');
+      // Skip this page and move to the next chapter
+      const nextHref = findNextChapterHref();
+      if (nextHref) {
+        await this.logger.info(`Next chapter detected. Preparing to navigate to: ${nextHref}`);
+        await politeWait(); // Default 3 second wait before navigating to next chapter
+        const nextUrl = new URL(nextHref, window.location.href).toString();
+        await this.logger.info(`Navigating to next chapter: ${nextUrl}`);
+        window.location.href = nextUrl;
+      } else {
+        await this.logger.info('No next chapter found. Bulk chapter download completed.');
+        // Clear the bulk download flag using repository
+        this.bulkStateRepo.clear();
+        alert(
+          'All chapters have been processed. Please check the extension logs for any errors or warnings.',
+        );
+      }
       return;
     }
 

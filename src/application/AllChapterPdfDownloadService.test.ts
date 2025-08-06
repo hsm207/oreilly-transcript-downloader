@@ -154,37 +154,34 @@ describe('AllChapterPdfDownloadService', () => {
     expect(mockLogger.info).toHaveBeenCalledWith('Book content loaded. Ready to process chapter.');
   });
 
-  it('should skip Practice Quiz pages and move to the next chapter', async () => {
-    // Arrange: bulk download is in progress
-    (mockBulkStateRepo.isInProgress as any).mockReturnValue(true);
-    // Simulate Practice Quiz marker in the DOM
-    const quizDiv = document.createElement('div');
-    quizDiv.className = 'test-title-text';
-    quizDiv.title = 'Practice Quiz';
-    quizDiv.textContent = 'Practice Quiz';
-    document.body.appendChild(quizDiv);
-    // Set the URL to a book chapter (simulate quiz page)
-    mockLocation.href = 'https://learning.oreilly.com/library/view/book-title/12345/';
+    it('should skip Practice Quiz pages and navigate to next chapter', async () => {
+      // Setup bulk download in progress
+      (mockBulkStateRepo.isInProgress as any).mockReturnValue(true);
+      
+      // Setup a Practice Quiz page with next chapter link
+      document.body.innerHTML = `
+        <div class="test-title-text" title="Practice Quiz">Practice Quiz</div>
+        <div data-testid="statusBarNext">
+          <a href="/chapter/next">Next Chapter</a>
+        </div>
+      `;
+      
+      // Ensure window.location.href matches expected
+      (window.location as any).href = 'https://learning.oreilly.com/chapter/practice-quiz';
 
-    // Spy on window.location.href setter to capture navigation
-    const setHref = vi.spyOn(window.location, 'href', 'set');
+      const service = new AllChapterPdfDownloadService(
+        mockTocExtractor,
+        mockBookChapterPdfService,
+        mockLogger,
+        mockBulkStateRepo,
+      );
 
-    // Act
-    await service.resumeDownloadIfNeeded();
+      await service.resumeDownloadIfNeeded();
 
-    // Assert
-    expect(mockBookChapterPdfService.downloadCurrentChapterAsPdf).not.toHaveBeenCalled();
-    expect(mockLogger.info).toHaveBeenCalledWith(
-      expect.stringContaining('Practice Quiz page detected. Skipping to next chapter'),
-    );
-    expect(setHref).toHaveBeenCalled();
-
-    // Clean up
-    document.body.removeChild(quizDiv);
-    setHref.mockRestore();
-  });
-
-  it('should skip resume logic when bulk download is not in progress', async () => {
+      // Verify navigation occurred
+      expect(window.location.href).toBe('https://learning.oreilly.com/chapter/next');
+      expect(mockLogger.info).toHaveBeenCalledWith('Practice Quiz page detected. Skipping to next chapter.');
+    });  it('should skip resume logic when bulk download is not in progress', async () => {
     // Arrange: bulk download is not in progress
     (mockBulkStateRepo.isInProgress as any).mockReturnValue(false);
 
