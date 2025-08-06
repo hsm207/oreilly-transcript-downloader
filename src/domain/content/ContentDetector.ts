@@ -18,6 +18,13 @@ const OREILLY_LIVE_URL_REGEX =
  */
 export function detectContentType(url: string): ContentType | null {
   if (!url) return null;
+
+  // Check for Practice Quiz marker in the DOM
+  const quizDiv = document.querySelector('div.test-title-text[title="Practice Quiz"]');
+  if (quizDiv && quizDiv.textContent?.trim() === 'Practice Quiz') {
+    return ContentType.PracticeQuiz;
+  }
+
   if (OREILLY_VIDEO_URL_REGEX.test(url)) {
     return ContentType.Video;
   }
