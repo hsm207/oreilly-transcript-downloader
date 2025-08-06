@@ -31,4 +31,19 @@ describe('detectContentType', () => {
     expect(detectContentType('')).toBe(null);
     expect(detectContentType(undefined as any)).toBe(null);
   });
+
+  it('should return ContentType.PracticeQuiz if the Practice Quiz marker element is present in the DOM', () => {
+    // Simulate the quiz marker in the DOM
+    const quizDiv = document.createElement('div');
+    quizDiv.className = 'test-title-text';
+    quizDiv.title = 'Practice Quiz';
+    quizDiv.textContent = 'Practice Quiz';
+    document.body.appendChild(quizDiv);
+
+    // The URL can be anything, since detection will check the DOM
+    expect(detectContentType('https://learning.oreilly.com/library/view/book-title/12345/')).toBe(ContentType.PracticeQuiz);
+
+    // Clean up
+    document.body.removeChild(quizDiv);
+  });
 });
