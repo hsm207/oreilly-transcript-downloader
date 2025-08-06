@@ -1,5 +1,5 @@
 import { downloadFile } from '../domain/download/FileDownloader';
-import { findBestEnglishVtt, makeTranscriptFilenameFromTitle } from '../domain/extraction/LiveEventTranscriptProcessingRules';
+import { findBestEnglishVtt, makeTranscriptFilenameFromTitle, preprocessVttToTranscript } from '../domain/extraction/LiveEventTranscriptProcessingRules';
 import { PersistentLogger } from '../infrastructure/logging/PersistentLogger';
 
 /**
@@ -83,13 +83,16 @@ export class LiveEventContentOrchestrator {
         `Successfully fetched VTT content, length: ${vttContent.length} characters`,
       );
 
-      // 4. (Future) Preprocess the transcript as needed
-      // TODO: Add preprocessing logic here
+      // 4. Preprocess the transcript using domain logic
+      const transcriptText = preprocessVttToTranscript(vttContent);
+      await this.logger.info(
+        `Preprocessed transcript content, length: ${transcriptText.length} characters`,
+      );
 
-  // 5. Download the transcript as a .txt file with a user-friendly name
-  const filename = makeTranscriptFilenameFromTitle(document.title);
-  this.downloadFileFn(filename, vttContent);
-  await this.logger.info(`LiveEvent transcript download completed successfully as ${filename}`);
+      // 5. Download the transcript as a .txt file with a user-friendly name
+      const filename = makeTranscriptFilenameFromTitle(document.title);
+      this.downloadFileFn(filename, transcriptText);
+      await this.logger.info(`LiveEvent transcript download completed successfully as ${filename}`);
     } catch (error) {
       await this.logger.error(`Error in LiveEvent transcript download: ${error}`);
       console.error('Error in LiveEvent transcript download:', error);
