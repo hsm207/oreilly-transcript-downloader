@@ -1,4 +1,12 @@
-import { pickFirst, makeTranscriptFilenameFromTitle } from './LiveEventTranscriptProcessingRules';
+import { pickFirst, makeTranscriptFilenameFromTitle, preprocessVttToTranscript } from './LiveEventTranscriptProcessingRules';
+import fs from 'fs';
+describe('preprocessVttToTranscript (domain logic)', () => {
+  it('converts a real VTT file to the expected transcript output (fixture)', () => {
+    const vtt = fs.readFileSync(__dirname + '/__testdata__/sample-preprocess-vtt.vtt', 'utf8');
+    const expected = fs.readFileSync(__dirname + '/__testdata__/expected-preprocess-vtt.txt', 'utf8').trim();
+    expect(preprocessVttToTranscript(vtt).trim()).toBe(expected);
+  });
+});
 
 describe('pickFirst (utility)', () => {
   it('returns null for an empty array', () => {
