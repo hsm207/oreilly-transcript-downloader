@@ -1,5 +1,6 @@
 import { describe, it, vi, expect, beforeEach } from 'vitest';
 import { LiveEventContentOrchestrator } from './LiveEventContentOrchestrator';
+import * as Rules from '../domain/extraction/LiveEventTranscriptProcessingRules';
 
 const mockLogger = {
   info: vi.fn(),
@@ -12,7 +13,7 @@ describe('LiveEventContentOrchestrator (happy path)', () => {
     vi.clearAllMocks();
   });
 
-  it('downloads the best English VTT file end-to-end', async () => {
+  it('downloads the best English VTT file end-to-end with a user-friendly filename', async () => {
     const vttUrl = 'https://cdn.oreilly.com/transcript/1234_EN.vtt';
     const mockSendMessage = vi.fn().mockResolvedValueOnce({ vttUrls: [vttUrl] });
     const mockFetch = vi.fn().mockResolvedValueOnce({
@@ -20,6 +21,13 @@ describe('LiveEventContentOrchestrator (happy path)', () => {
       text: () => Promise.resolve('WEBVTT\n...transcript...'),
     });
     const mockDownloadFile = vi.fn();
+
+    // Mock document.title
+    const originalTitle = global.document?.title;
+    Object.defineProperty(global.document, 'title', {
+      value: 'My Awesome Live Event | O\'Reilly',
+      configurable: true,
+    });
 
     const orchestrator = new LiveEventContentOrchestrator(
       mockLogger as any,
@@ -36,9 +44,19 @@ describe('LiveEventContentOrchestrator (happy path)', () => {
     );
     expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining(vttUrl));
     expect(mockDownloadFile).toHaveBeenCalledWith(
-      'live-event-transcript.vtt',
+      'My_Awesome_Live_Event_English_transcript.txt',
       expect.stringContaining('WEBVTT'),
     );
-    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('completed successfully'));
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      expect.stringContaining('completed successfully as My_Awesome_Live_Event_English_transcript.txt'),
+    );
+
+    // Restore document.title
+    if (originalTitle !== undefined) {
+      Object.defineProperty(global.document, 'title', {
+        value: originalTitle,
+        configurable: true,
+      });
+    }
   });
 });

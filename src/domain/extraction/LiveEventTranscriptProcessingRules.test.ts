@@ -1,4 +1,4 @@
-import { pickFirst } from './LiveEventTranscriptProcessingRules';
+import { pickFirst, makeTranscriptFilenameFromTitle } from './LiveEventTranscriptProcessingRules';
 
 describe('pickFirst (utility)', () => {
   it('returns null for an empty array', () => {
@@ -81,5 +81,29 @@ describe('findBestEnglishVtt (domain logic)', () => {
       'https://cdn.oreilly.com/transcripts/12345_DE.vtt',
     ];
     expect(findBestEnglishVtt(urls)).toEqual([]);
+  });
+});
+
+
+describe('makeTranscriptFilenameFromTitle', () => {
+  it('removes branding and formats a simple title', () => {
+    expect(makeTranscriptFilenameFromTitle("My Awesome Live Event | O'Reilly")).toBe('My_Awesome_Live_Event_English_transcript.txt');
+  });
+
+  it('handles titles with special characters', () => {
+    expect(makeTranscriptFilenameFromTitle('Data Science: The Next Gen! | O\'Reilly')).toBe('Data_Science_The_Next_Gen_English_transcript.txt');
+  });
+
+  it('handles titles with only the event name', () => {
+    expect(makeTranscriptFilenameFromTitle('Just The Event Name')).toBe('Just_The_Event_Name_English_transcript.txt');
+  });
+
+  it('trims and cleans up leading/trailing underscores', () => {
+    expect(makeTranscriptFilenameFromTitle('  Weird   Name  | O\'Reilly')).toBe('Weird_Name_English_transcript.txt');
+  });
+
+  it('handles empty or whitespace-only titles', () => {
+    expect(makeTranscriptFilenameFromTitle('   | O\'Reilly')).toBe('_English_transcript.txt');
+    expect(makeTranscriptFilenameFromTitle('   ')).toBe('_English_transcript.txt');
   });
 });

@@ -1,4 +1,18 @@
 /**
+ * Generates a user-friendly transcript filename from a DOM title string.
+ * Example: "My Awesome Live Event | O'Reilly" => "My_Awesome_Live_Event_English_transcript.txt"
+ *
+ * @param domTitle The document.title string from the DOM
+ * @returns A sanitized filename for the transcript
+ */
+export function makeTranscriptFilenameFromTitle(domTitle: string): string {
+  // Remove branding/pipe if present (e.g., " | O'Reilly")
+  let name = domTitle.split('|')[0].trim();
+  // Replace spaces and illegal filename chars with underscores
+  name = name.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return `${name}_English_transcript.txt`;
+}
+/**
  * Returns the first item in an array, or null if empty.
  * Generic utility for composing domain rules.
  */
