@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as PopupService from './PopupService';
+import { ContentType } from '../domain/content/ContentType';
 
 // Mock chrome.tabs API
 declare global {
@@ -41,14 +42,14 @@ describe('PopupService', () => {
     });
   });
 
-  it('getCurrentPageInfo resolves with isVideoPage true for OReilly video URL', async () => {
+  it('getCurrentPageInfo resolves with contentType Video for OReilly video URL', async () => {
     const result = await PopupService.getCurrentPageInfo();
-    expect(result).toEqual({ isVideoPage: true, url: 'https://learning.oreilly.com/videos/1234/' });
+    expect(result).toEqual({ contentType: ContentType.Video, url: 'https://learning.oreilly.com/videos/1234/' });
   });
 
-  it('getCurrentPageInfo resolves with isVideoPage false if no tab', async () => {
+  it('getCurrentPageInfo resolves with contentType null if no tab', async () => {
     globalThis.chrome.tabs.query = vi.fn((query, cb) => cb([]));
     const result = await PopupService.getCurrentPageInfo();
-    expect(result).toEqual({ isVideoPage: false, url: null });
+    expect(result).toEqual({ contentType: null, url: null });
   });
 });
