@@ -7,16 +7,12 @@ describe('findBestEnglishVtt (domain logic)', () => {
   });
 
   it('returns the only .vtt file if it contains EN in the filename', () => {
-    const urls = [
-      'https://cdn.oreilly.com/transcripts/12345_EN.vtt'
-    ];
+    const urls = ['https://cdn.oreilly.com/transcripts/12345_EN.vtt'];
     expect(findBestEnglishVtt(urls)).toEqual([urls[0]]);
   });
 
   it('returns the only .vtt file if it contains English in the filename', () => {
-    const urls = [
-      'https://cdn.oreilly.com/transcripts/12345-English.vtt'
-    ];
+    const urls = ['https://cdn.oreilly.com/transcripts/12345-English.vtt'];
     expect(findBestEnglishVtt(urls)).toEqual([urls[0]]);
   });
 
@@ -24,7 +20,7 @@ describe('findBestEnglishVtt (domain logic)', () => {
     const urls = [
       'https://cdn.oreilly.com/transcripts/12345_FR.vtt',
       'https://cdn.oreilly.com/transcripts/12345_EN.vtt',
-      'https://cdn.oreilly.com/transcripts/12345_DE.vtt'
+      'https://cdn.oreilly.com/transcripts/12345_DE.vtt',
     ];
     expect(findBestEnglishVtt(urls)).toEqual(['https://cdn.oreilly.com/transcripts/12345_EN.vtt']);
   });
@@ -33,7 +29,7 @@ describe('findBestEnglishVtt (domain logic)', () => {
     const urls = [
       'https://cdn.oreilly.com/transcripts/12345_fr.vtt',
       'https://cdn.oreilly.com/transcripts/12345_en.vtt',
-      'https://cdn.oreilly.com/transcripts/12345_english.vtt'
+      'https://cdn.oreilly.com/transcripts/12345_english.vtt',
     ];
     expect(findBestEnglishVtt(urls)).toEqual(['https://cdn.oreilly.com/transcripts/12345_en.vtt']);
   });
@@ -41,15 +37,17 @@ describe('findBestEnglishVtt (domain logic)', () => {
   it('returns the first English .vtt file if multiple matches are present', () => {
     const urls = [
       'https://cdn.oreilly.com/transcripts/12345_english.vtt',
-      'https://cdn.oreilly.com/transcripts/12345_EN.vtt'
+      'https://cdn.oreilly.com/transcripts/12345_EN.vtt',
     ];
-    expect(findBestEnglishVtt(urls)).toEqual(['https://cdn.oreilly.com/transcripts/12345_english.vtt']);
+    expect(findBestEnglishVtt(urls)).toEqual([
+      'https://cdn.oreilly.com/transcripts/12345_english.vtt',
+    ]);
   });
 
   it('returns an empty array if no English .vtt file is found', () => {
     const urls = [
       'https://cdn.oreilly.com/transcripts/12345_FR.vtt',
-      'https://cdn.oreilly.com/transcripts/12345_DE.vtt'
+      'https://cdn.oreilly.com/transcripts/12345_DE.vtt',
     ];
     expect(findBestEnglishVtt(urls)).toEqual([]);
   });

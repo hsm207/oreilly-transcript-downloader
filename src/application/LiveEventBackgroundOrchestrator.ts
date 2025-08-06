@@ -1,4 +1,4 @@
-import { PersistentLogger } from "../infrastructure/logging/PersistentLogger";
+import { PersistentLogger } from '../infrastructure/logging/PersistentLogger';
 
 /**
  * LiveEventBackgroundOrchestrator
@@ -25,7 +25,7 @@ export class LiveEventBackgroundOrchestrator {
   constructor(
     private readonly logger: PersistentLogger,
     private readonly getTabsFn: typeof chrome.tabs.query,
-    private readonly vttUrlsPerTab: { [tabId: number]: string[] }
+    private readonly vttUrlsPerTab: { [tabId: number]: string[] },
   ) {}
 
   /**
@@ -41,14 +41,14 @@ export class LiveEventBackgroundOrchestrator {
       const currentTab = tabs[0];
 
       if (!currentTab?.id) {
-        sendResponse({ error: "Could not determine current tab" });
+        sendResponse({ error: 'Could not determine current tab' });
         return;
       }
 
       // 2. Look up all captured .vtt URLs for this tab
       const capturedUrls = this.vttUrlsPerTab[currentTab.id] || [];
       await this.logger.info(
-        `Looking for .vtt URLs for tab ${currentTab.id}, found: ${JSON.stringify(capturedUrls)}`
+        `Looking for .vtt URLs for tab ${currentTab.id}, found: ${JSON.stringify(capturedUrls)}`,
       );
 
       // 3. Return the raw list of VTT URLs (let content orchestrator handle selection)

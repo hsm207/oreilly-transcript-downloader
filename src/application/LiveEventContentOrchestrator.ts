@@ -1,6 +1,6 @@
-import { downloadFile } from "../domain/download/FileDownloader";
-import { findBestEnglishVtt } from "../domain/extraction/LiveEventTranscriptProcessingRules";
-import { PersistentLogger } from "../infrastructure/logging/PersistentLogger";
+import { downloadFile } from '../domain/download/FileDownloader';
+import { findBestEnglishVtt } from '../domain/extraction/LiveEventTranscriptProcessingRules';
+import { PersistentLogger } from '../infrastructure/logging/PersistentLogger';
 
 /**
  * LiveEventContentOrchestrator
@@ -27,7 +27,7 @@ export class LiveEventContentOrchestrator {
     private readonly logger: PersistentLogger,
     private readonly sendMessageFn: typeof chrome.runtime.sendMessage,
     private readonly fetchFn: typeof fetch,
-    private readonly downloadFileFn: typeof downloadFile
+    private readonly downloadFileFn: typeof downloadFile,
   ) {}
 
   /**
@@ -37,24 +37,25 @@ export class LiveEventContentOrchestrator {
    * @returns Promise<void>
    */
   async downloadLiveEventTranscript(): Promise<void> {
-    
     try {
-      await this.logger.info("Starting LiveEvent transcript download flow");
+      await this.logger.info('Starting LiveEvent transcript download flow');
 
       // 1. Ask background for the list of available transcript VTT URLs
       const response = await this.sendMessageFn({
-        action: "FIND_TRANSCRIPT_VTT",
+        action: 'FIND_TRANSCRIPT_VTT',
         tabId: null,
       });
 
       // Always expect a list of VTT URLs from background (raw data)
       const vttUrls: string[] = response?.vttUrls || [];
-      await this.logger.info(`Received ${vttUrls.length} VTT URLs from background: ${JSON.stringify(vttUrls)}`);
-      
+      await this.logger.info(
+        `Received ${vttUrls.length} VTT URLs from background: ${JSON.stringify(vttUrls)}`,
+      );
+
       if (!vttUrls.length) {
         const errorMessage =
           response?.error ||
-          "Failed to find transcript file. Make sure closed captions are enabled.";
+          'Failed to find transcript file. Make sure closed captions are enabled.';
         await this.logger.warn(`No VTT URLs found: ${errorMessage}`);
         alert(errorMessage);
         return;
@@ -63,8 +64,8 @@ export class LiveEventContentOrchestrator {
       // 2. Select the best/English VTT file from the list using domain logic
       const bestVttUrls = findBestEnglishVtt(vttUrls);
       if (!bestVttUrls.length) {
-        await this.logger.warn("No English transcript file found in available options");
-        alert("No English transcript file found in the available options.");
+        await this.logger.warn('No English transcript file found in available options');
+        alert('No English transcript file found in the available options.');
         return;
       }
       const selectedVttUrl = bestVttUrls[0];
@@ -78,19 +79,20 @@ export class LiveEventContentOrchestrator {
         return;
       }
       const vttContent = await vttResponse.text();
-      await this.logger.info(`Successfully fetched VTT content, length: ${vttContent.length} characters`);
+      await this.logger.info(
+        `Successfully fetched VTT content, length: ${vttContent.length} characters`,
+      );
 
       // 4. (Future) Preprocess the transcript as needed
       // TODO: Add preprocessing logic here
 
       // 5. Download the transcript as a .txt file (for now, still .vtt)
-      this.downloadFileFn("live-event-transcript.vtt", vttContent);
-      await this.logger.info("LiveEvent transcript download completed successfully");
+      this.downloadFileFn('live-event-transcript.vtt', vttContent);
+      await this.logger.info('LiveEvent transcript download completed successfully');
     } catch (error) {
       await this.logger.error(`Error in LiveEvent transcript download: ${error}`);
-      console.error("Error in LiveEvent transcript download:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      console.error('Error in LiveEvent transcript download:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       alert(`Failed to download transcript: ${errorMessage}`);
     }
   }
@@ -104,7 +106,7 @@ export class LiveEventContentOrchestrator {
       PersistentLogger.instance,
       chrome.runtime.sendMessage,
       fetch,
-      downloadFile
+      downloadFile,
     );
     return orchestrator.downloadLiveEventTranscript();
   }

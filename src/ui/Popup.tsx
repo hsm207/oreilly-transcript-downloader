@@ -13,7 +13,6 @@ import {
 } from '../application/PopupService';
 import { ContentType } from '../domain/content/ContentType';
 
-
 export const Popup = () => {
   const [contentType, setContentType] = useState<ContentType | null>(null);
   const [loading, setLoading] = useState(true);

@@ -69,7 +69,10 @@ export function requestAllTranscriptsDownload(): void {
  *   { contentType: ContentType.Live, url: 'https://event.on24.com/eventRegistration/console/apollox/mainEvent?...' }
  *   { contentType: null, url: null } // Not an O'Reilly page or no tab found
  */
-export async function getCurrentPageInfo(): Promise<{ contentType: ContentType | null; url: string | null }> {
+export async function getCurrentPageInfo(): Promise<{
+  contentType: ContentType | null;
+  url: string | null;
+}> {
   return new Promise((resolve) => {
     if (typeof chrome !== 'undefined' && chrome.tabs) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {

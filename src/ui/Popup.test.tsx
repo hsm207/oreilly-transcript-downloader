@@ -24,19 +24,19 @@ describe('Popup', () => {
   it('should show loading state initially', () => {
     // Mock getCurrentPageInfo to never resolve
     vi.mocked(PopupService.getCurrentPageInfo).mockImplementation(
-      () => new Promise(() => {}) // Never resolves
+      () => new Promise(() => {}), // Never resolves
     );
 
     render(<Popup />);
-    
+
     expect(screen.getByText('Loading...')).toBeInTheDocument();
-    expect(screen.getByText('O\'Reilly Transcript Downloader')).toBeInTheDocument();
+    expect(screen.getByText("O'Reilly Transcript Downloader")).toBeInTheDocument();
   });
 
   it('should show video page buttons when contentType is Video', async () => {
     vi.mocked(PopupService.getCurrentPageInfo).mockResolvedValue({
       contentType: ContentType.Video,
-      url: 'https://learning.oreilly.com/videos/some-video/123'
+      url: 'https://learning.oreilly.com/videos/some-video/123',
     });
 
     render(<Popup />);
@@ -54,7 +54,7 @@ describe('Popup', () => {
   it('should show book page buttons when contentType is Book', async () => {
     vi.mocked(PopupService.getCurrentPageInfo).mockResolvedValue({
       contentType: ContentType.Book,
-      url: 'https://learning.oreilly.com/library/view/some-book/123'
+      url: 'https://learning.oreilly.com/library/view/some-book/123',
     });
 
     render(<Popup />);
@@ -72,7 +72,7 @@ describe('Popup', () => {
   it('should show live class button when contentType is Live', async () => {
     vi.mocked(PopupService.getCurrentPageInfo).mockResolvedValue({
       contentType: ContentType.Live,
-      url: 'https://event.on24.com/eventRegistration/console/apollox/mainEvent?simulive=y&eventid=123'
+      url: 'https://event.on24.com/eventRegistration/console/apollox/mainEvent?simulive=y&eventid=123',
     });
 
     render(<Popup />);
@@ -91,7 +91,7 @@ describe('Popup', () => {
   it('should show unsupported page message when contentType is null', async () => {
     vi.mocked(PopupService.getCurrentPageInfo).mockResolvedValue({
       contentType: null,
-      url: 'https://some-other-site.com'
+      url: 'https://some-other-site.com',
     });
 
     render(<Popup />);

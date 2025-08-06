@@ -7,8 +7,8 @@ const OREILLY_VIDEO_URL_REGEX = /^https:\/\/learning\.oreilly\.com\/videos\//;
 // Regex to identify O'Reilly book pages
 const OREILLY_BOOK_URL_REGEX = /^https:\/\/learning\.oreilly\.com\/library\/view\//;
 // Regex to identify O'Reilly live class pages (recorded)
-const OREILLY_LIVE_URL_REGEX = /^https:\/\/event\.on24\.com\/eventRegistration\/console\/apollox\/mainEvent/;
-
+const OREILLY_LIVE_URL_REGEX =
+  /^https:\/\/event\.on24\.com\/eventRegistration\/console\/apollox\/mainEvent/;
 
 /**
  * Detects the content type of the current page.

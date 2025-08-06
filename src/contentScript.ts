@@ -12,7 +12,7 @@ import { BulkChapterDownloadStateRepository } from './infrastructure/BulkChapter
 import { PersistentLogger } from './infrastructure/logging/PersistentLogger';
 import { BookChapterExtractor } from './domain/extraction/BookChapterExtractor';
 import { PdfGenerator } from './infrastructure/PdfGenerator';
-import { LiveEventContentOrchestrator } from "./application/LiveEventContentOrchestrator";
+import { LiveEventContentOrchestrator } from './application/LiveEventContentOrchestrator';
 
 // On every page load, check if book chapter download state exists and resume download using the application service
 const allChapterPdfDownloadService = new AllChapterPdfDownloadService(
@@ -88,7 +88,6 @@ async function handleDownloadTranscript() {
     }
   });
 }
-
 
 async function handleLiveClassTranscriptDownload(): Promise<void> {
   await LiveEventContentOrchestrator.downloadLiveEventTranscript();

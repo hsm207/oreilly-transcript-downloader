@@ -44,7 +44,10 @@ describe('PopupService', () => {
 
   it('getCurrentPageInfo resolves with contentType Video for OReilly video URL', async () => {
     const result = await PopupService.getCurrentPageInfo();
-    expect(result).toEqual({ contentType: ContentType.Video, url: 'https://learning.oreilly.com/videos/1234/' });
+    expect(result).toEqual({
+      contentType: ContentType.Video,
+      url: 'https://learning.oreilly.com/videos/1234/',
+    });
   });
 
   it('getCurrentPageInfo resolves with contentType null if no tab', async () => {
