@@ -1,3 +1,28 @@
+import { pickFirst } from './LiveEventTranscriptProcessingRules';
+
+describe('pickFirst (utility)', () => {
+  it('returns null for an empty array', () => {
+    expect(pickFirst([])).toBeNull();
+  });
+
+  it('returns the only item if array has one element', () => {
+    expect(pickFirst(['a'])).toBe('a');
+  });
+
+  it('returns the first item if array has multiple elements', () => {
+    expect(pickFirst(['a', 'b', 'c'])).toBe('a');
+  });
+
+  it('composes with findBestEnglishVtt to select the first English VTT', () => {
+    const urls = [
+      'https://cdn.oreilly.com/transcripts/12345_english.vtt',
+      'https://cdn.oreilly.com/transcripts/12345_EN.vtt',
+      'https://cdn.oreilly.com/transcripts/12345_ENGLISH.vtt',
+    ];
+    const englishVtts = findBestEnglishVtt(urls);
+    expect(pickFirst(englishVtts)).toBe('https://cdn.oreilly.com/transcripts/12345_english.vtt');
+  });
+});
 import { describe, it, expect } from 'vitest';
 import { findBestEnglishVtt } from './LiveEventTranscriptProcessingRules';
 
@@ -25,22 +50,28 @@ describe('findBestEnglishVtt (domain logic)', () => {
     expect(findBestEnglishVtt(urls)).toEqual(['https://cdn.oreilly.com/transcripts/12345_EN.vtt']);
   });
 
-  it('returns the English .vtt file if multiple .vtt files with different cases are present', () => {
+  it('returns all English .vtt files if multiple .vtt files with different cases are present', () => {
     const urls = [
       'https://cdn.oreilly.com/transcripts/12345_fr.vtt',
       'https://cdn.oreilly.com/transcripts/12345_en.vtt',
       'https://cdn.oreilly.com/transcripts/12345_english.vtt',
     ];
-    expect(findBestEnglishVtt(urls)).toEqual(['https://cdn.oreilly.com/transcripts/12345_en.vtt']);
+    expect(findBestEnglishVtt(urls)).toEqual([
+      'https://cdn.oreilly.com/transcripts/12345_en.vtt',
+      'https://cdn.oreilly.com/transcripts/12345_english.vtt',
+    ]);
   });
 
-  it('returns the first English .vtt file if multiple matches are present', () => {
+  it('returns all English .vtt files if multiple matches are present', () => {
     const urls = [
       'https://cdn.oreilly.com/transcripts/12345_english.vtt',
       'https://cdn.oreilly.com/transcripts/12345_EN.vtt',
+      'https://cdn.oreilly.com/transcripts/12345_ENGLISH.vtt',
     ];
     expect(findBestEnglishVtt(urls)).toEqual([
       'https://cdn.oreilly.com/transcripts/12345_english.vtt',
+      'https://cdn.oreilly.com/transcripts/12345_EN.vtt',
+      'https://cdn.oreilly.com/transcripts/12345_ENGLISH.vtt',
     ]);
   });
 
