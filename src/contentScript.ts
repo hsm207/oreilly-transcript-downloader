@@ -12,6 +12,7 @@ import { BulkChapterDownloadStateRepository } from './infrastructure/BulkChapter
 import { PersistentLogger } from './infrastructure/logging/PersistentLogger';
 import { BookChapterExtractor } from './domain/extraction/BookChapterExtractor';
 import { PdfGenerator } from './infrastructure/PdfGenerator';
+import { LiveEventContentOrchestrator } from "./application/LiveEventContentOrchestrator";
 
 // On every page load, check if book chapter download state exists and resume download using the application service
 const allChapterPdfDownloadService = new AllChapterPdfDownloadService(
@@ -77,6 +78,7 @@ async function handleDownloadAllTranscripts() {
 }
 
 async function handleDownloadTranscript() {
+  // This is for regular video courses only
   await allTranscriptDownloadService.downloadSingleTranscript((error) => {
     if (typeof error === 'string') {
       alert(error);
@@ -87,6 +89,11 @@ async function handleDownloadTranscript() {
   });
 }
 
+
+async function handleLiveClassTranscriptDownload(): Promise<void> {
+  await LiveEventContentOrchestrator.downloadLiveEventTranscript();
+}
+
 chrome.runtime.onMessage.addListener(async (message) => {
   if (message.action === 'DOWNLOAD_ALL_TRANSCRIPTS') {
     await handleDownloadAllTranscripts();
@@ -94,6 +101,10 @@ chrome.runtime.onMessage.addListener(async (message) => {
   }
   if (message.action === 'DOWNLOAD_TRANSCRIPT') {
     await handleDownloadTranscript();
+    return;
+  }
+  if (message.action === 'DOWNLOAD_LIVE_EVENT_TRANSCRIPT') {
+    await handleLiveClassTranscriptDownload();
     return;
   }
   if (message.action === 'DOWNLOAD_ALL_CHAPTERS_PDF') {

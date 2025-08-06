@@ -6,6 +6,7 @@ import styles from './Popup.module.css';
 import {
   getCurrentPageInfo,
   requestTranscriptDownload,
+  requestLiveTranscriptDownload,
   requestAllTranscriptsDownload,
   requestChapterPdfDownload,
   requestAllChaptersPdfDownload,
@@ -24,8 +25,13 @@ export const Popup = () => {
     });
   }, []);
 
+  // TODO: Consider refactoring the names of request...Download functions for clarity
   const handleDownload = () => {
-    requestTranscriptDownload();
+    if (contentType === ContentType.Live) {
+      requestLiveTranscriptDownload();
+    } else {
+      requestTranscriptDownload();
+    }
   };
 
   if (loading)

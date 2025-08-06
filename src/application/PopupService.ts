@@ -108,3 +108,22 @@ export function requestTranscriptDownload(): void {
     console.warn('chrome.tabs API not available for sending message.');
   }
 }
+
+/**
+ * Sends a message to the content script of the active tab to initiate live class transcript download.
+ */
+export function requestLiveTranscriptDownload(): void {
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+      const tabId = tabs[0]?.id;
+      if (tabId) {
+        chrome.tabs.sendMessage(tabId, { action: 'DOWNLOAD_LIVE_EVENT_TRANSCRIPT' });
+        console.log('DOWNLOAD_LIVE_EVENT_TRANSCRIPT message sent to tab:', tabId);
+      } else {
+        console.warn('No active tab found to send DOWNLOAD_LIVE_EVENT_TRANSCRIPT message.');
+      }
+    });
+  } else {
+    console.warn('chrome.tabs API not available for sending message.');
+  }
+}
