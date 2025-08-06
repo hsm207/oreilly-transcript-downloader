@@ -37,7 +37,7 @@ describe('detectContentType', () => {
     expect(detectContentType(doc2, undefined as any)).toBe(null);
   });
 
-  it('should return ContentType.PracticeQuiz if the Practice Quiz marker element is present in the DOM', () => {
+  it('should return ContentType.Quiz if the Practice Quiz marker element is present in the DOM', () => {
     const doc = makeFixtureDoc((doc) => {
       const quizDiv = doc.createElement('div');
       quizDiv.className = 'test-title-text';
@@ -45,6 +45,17 @@ describe('detectContentType', () => {
       quizDiv.textContent = 'Practice Quiz';
       doc.body.appendChild(quizDiv);
     });
-    expect(detectContentType(doc, 'https://learning.oreilly.com/library/view/book-title/12345/')).toBe(ContentType.PracticeQuiz);
+    expect(detectContentType(doc, 'https://learning.oreilly.com/library/view/book-title/12345/')).toBe(ContentType.Quiz);
+  });
+
+  it('should return ContentType.Quiz if the Final Quiz marker element is present in the DOM', () => {
+    const doc = makeFixtureDoc((doc) => {
+      const quizDiv = doc.createElement('div');
+      quizDiv.className = 'test-title-text';
+      quizDiv.title = 'Final Quiz';
+      quizDiv.textContent = 'Final Quiz';
+      doc.body.appendChild(quizDiv);
+    });
+    expect(detectContentType(doc, 'https://learning.oreilly.com/library/view/book-title/12345/')).toBe(ContentType.Quiz);
   });
 });

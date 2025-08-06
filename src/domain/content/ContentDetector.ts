@@ -22,17 +22,23 @@ const OREILLY_LIVE_URL_REGEX =
  * we keep the function pure, testable, and avoid JSDOM drama.
  *
  * Add new types by extending the regexes and switch below.
- * @param doc The Document to inspect for DOM markers (e.g., quiz pages)
+ * @param doc The Document to inspect for DOM markers (e.g., quiz pages). Can be null for URL-only detection.
  * @param url The URL of the page to detect content type for
  * @returns ContentType value if detected, or null.
  */
-export function detectContentType(doc: Document, url: string): ContentType | null {
-  if (!doc || !url) return null;
+export function detectContentType(doc: Document | null, url: string): ContentType | null {
+  if (!url) return null;
 
-  // Check for Practice Quiz marker in the DOM
-  const quizDiv = doc.querySelector('div.test-title-text[title="Practice Quiz"]');
-  if (quizDiv && quizDiv.textContent?.trim() === 'Practice Quiz') {
-    return ContentType.PracticeQuiz;
+
+  // Check for Quiz marker in the DOM (Practice or Final Quiz)
+  if (doc) {
+    const quizDiv = doc.querySelector('div.test-title-text[title="Practice Quiz"], div.test-title-text[title="Final Quiz"]');
+    if (
+      quizDiv &&
+      (quizDiv.textContent?.trim() === 'Practice Quiz' || quizDiv.textContent?.trim() === 'Final Quiz')
+    ) {
+      return ContentType.Quiz;
+    }
   }
 
   if (OREILLY_VIDEO_URL_REGEX.test(url)) {

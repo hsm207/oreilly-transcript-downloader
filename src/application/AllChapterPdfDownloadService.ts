@@ -65,36 +65,37 @@ export class AllChapterPdfDownloadService {
       return;
     }
 
-    // Check if this is a Practice Quiz page
-    const contentType = detectContentType(document, window.location.href);
-    if (contentType === ContentType.PracticeQuiz) {
-      await this.logger.info('Practice Quiz page detected. Skipping to next chapter.');
-      // Skip this page and move to the next chapter
-      const nextHref = findNextChapterHref();
-      if (nextHref) {
-        await this.logger.info(`Next chapter detected. Preparing to navigate to: ${nextHref}`);
-        await politeWait(); // Default 3 second wait before navigating to next chapter
-        const nextUrl = new URL(nextHref, window.location.href).toString();
-        await this.logger.info(`Navigating to next chapter: ${nextUrl}`);
-        window.location.href = nextUrl;
-      } else {
-        await this.logger.info('No next chapter found. Bulk chapter download completed.');
-        // Clear the bulk download flag using repository
-        this.bulkStateRepo.clear();
-        alert(
-          'All chapters have been processed. Please check the extension logs for any errors or warnings.',
-        );
-      }
-      return;
-    }
 
     // Wait for book content to be fully loaded before proceeding
     try {
       await waitForBookContent();
       await this.logger.info('Book content loaded. Ready to process chapter.');
     } catch (err) {
-      await this.logger.error('Book content did not load in time. Aborting chapter download.');
-      return;
+      // If book content fails to load, check if this is a Quiz page (Practice or Final)
+      const contentType = detectContentType(document, window.location.href);
+      if (contentType === ContentType.Quiz) {
+        await this.logger.info('Quiz page detected after content timeout. Skipping to next chapter.');
+        // Skip this page and move to the next chapter
+        const nextHref = findNextChapterHref();
+        if (nextHref) {
+          await this.logger.info(`Next chapter detected. Preparing to navigate to: ${nextHref}`);
+          await politeWait(); // Default 3 second wait before navigating to next chapter
+          const nextUrl = new URL(nextHref, window.location.href).toString();
+          await this.logger.info(`Navigating to next chapter: ${nextUrl}`);
+          window.location.href = nextUrl;
+        } else {
+          await this.logger.info('No next chapter found. Bulk chapter download completed.');
+          // Clear the bulk download flag using repository
+          this.bulkStateRepo.clear();
+          alert(
+            'All chapters have been processed. Please check the extension logs for any errors or warnings.',
+          );
+        }
+        return;
+      } else {
+        await this.logger.error('Book content did not load in time and page is not a Quiz. Aborting chapter download.');
+        return;
+      }
     }
 
     // Use the document's title as the filename (or fallback)

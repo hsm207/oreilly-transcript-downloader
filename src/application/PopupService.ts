@@ -79,7 +79,8 @@ export async function getCurrentPageInfo(): Promise<{
         const currentTab = tabs && tabs[0];
         if (currentTab && currentTab.url) {
           const url = currentTab.url;
-          const contentType = detectContentType(url);
+          // PopupService only has URL, no document access, so pass null for doc
+          const contentType = detectContentType(null, url);
           resolve({ contentType, url });
         } else {
           resolve({ contentType: null, url: null }); // No URL or tab found
