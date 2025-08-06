@@ -1,4 +1,43 @@
 /**
+ * Converts a .vtt file string to a clean transcript format:
+ *   [timestamp range]: [caption text]
+ *   (one per line, no WEBVTT/NOTE/confidence lines, no blank lines)
+ *
+ * @param vttContent Raw .vtt file content as string
+ * @returns Clean transcript string
+ */
+export function preprocessVttToTranscript(vttContent: string): string {
+  if (!vttContent.trim()) return "";
+  const lines = vttContent.split(/\r?\n/);
+  const result: string[] = [];
+  let currentTimestamp: string | null = null;
+  let currentText: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed === "WEBVTT" || trimmed.startsWith("NOTE")) {
+      continue;
+    }
+    // Timestamp line
+    if (/^\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}$/.test(trimmed)) {
+      // If we have a previous block, flush it
+      if (currentTimestamp && currentText.length) {
+        result.push(`${currentTimestamp}: ${currentText.join("\n")}`);
+      }
+      currentTimestamp = trimmed;
+      currentText = [];
+    } else if (currentTimestamp) {
+      // Caption text line(s)
+      currentText.push(trimmed);
+    }
+  }
+  // Flush last block
+  if (currentTimestamp && currentText.length) {
+    result.push(`${currentTimestamp}: ${currentText.join("\n")}`);
+  }
+  return result.join("\n");
+}
+/**
  * Generates a user-friendly transcript filename from a DOM title string.
  * Example: "My Awesome Live Event | O'Reilly" => "My_Awesome_Live_Event_English_transcript.txt"
  *
